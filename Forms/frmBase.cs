@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Data.Odbc;
+using System.Data.OleDb;
 using System.Drawing;
 using System.Linq;
 using System.Text;
@@ -17,7 +19,7 @@ namespace JT_Database_App.Forms
     internal string connectionStr;
     public frmBase()
     {
-      this.connectionStr = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" + Settings.Default.BOPath;
+      this.connectionStr = PublicMethods.BOConnectionString; // "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" + Settings.Default.BOPath;
       InitializeComponent();
 
       this.menuStrip.Form = this;
@@ -25,5 +27,60 @@ namespace JT_Database_App.Forms
     }
 
     protected virtual void DoLoad(object sender, EventArgs e) { }
+
+    protected async Task<DataTable> QueryJT(string cmd)
+    {
+      DataTable dataTable = new DataTable();
+      using (OleDbConnection conn = new OleDbConnection(this.connectionStr))
+      {
+        await conn.OpenAsync();
+        using (OleDbDataAdapter adapter = new OleDbDataAdapter(cmd, conn))
+        {
+          adapter.Fill(dataTable);
+          return dataTable;
+        }
+      }
+    }
+    protected async Task<DataTable> QueryJT(OleDbCommand cmd)
+    {
+      DataTable dataTable = new DataTable();
+      using (OleDbConnection conn = new OleDbConnection(this.connectionStr))
+      {
+        cmd.Connection = conn;
+        await conn.OpenAsync();
+        using (OleDbDataAdapter adapter = new OleDbDataAdapter(cmd))
+        {
+          adapter.Fill(dataTable);
+          return dataTable;
+        }
+      }
+    }
+    protected async Task<DataTable> QueryIQ(string cmd)
+    {
+      DataTable dataTable = new DataTable();
+      using (OdbcConnection conn = new OdbcConnection(this.connectionStr))
+      {
+        await conn.OpenAsync();
+        using (OdbcDataAdapter adapter = new OdbcDataAdapter(cmd, conn))
+        {
+          adapter.Fill(dataTable);
+          return dataTable;
+        }
+      }
+    }
+    protected async Task<DataTable> QueryIQ(OdbcCommand cmd)
+    {
+      DataTable dataTable = new DataTable();
+      using (OdbcConnection conn = new OdbcConnection(PublicMethods.IQConnectionString))
+      {
+        cmd.Connection = conn;
+        await conn.OpenAsync();
+        using (OdbcDataAdapter adapter = new OdbcDataAdapter(cmd))
+        {
+          adapter.Fill(dataTable);
+          return dataTable;
+        }
+      }
+    }
   }
 }

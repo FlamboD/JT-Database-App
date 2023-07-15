@@ -68,7 +68,6 @@ namespace JT_Database_App
           this.Hide();
           return;
         }
-        Dictionary<string, int> hours = new Validation().getHours();
         this.Invoke(new Action(() =>
         {
           this.dgvLastScanned.DataSource = dataTable;
