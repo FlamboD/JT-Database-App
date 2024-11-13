@@ -19,8 +19,8 @@ namespace JT_Database_App
     {
       Application.EnableVisualStyles();
       Application.SetCompatibleTextRenderingDefault(false);
-      Application.Run((Form)new frmSales());
-      return;
+      //Application.Run((Form)new frmSales());
+      //return;
       switch (Settings.Default.DefaultForm)
       {
         case "frmCashier":

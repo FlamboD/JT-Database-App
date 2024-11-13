@@ -80,7 +80,7 @@ namespace JT_Database_App
 
     private void FillTables()
     {
-      string selectCommandText = "SELECT\n   sc.Invsales AS Inv,\n   sc.[Customer Name] AS Customer,\n   sc.[sale time] AS [Date],\n   (\n       (sc.cut AND cut.[cut date] IS NOT NULL) OR\n       NOT sc.cut\n   ) AS cutnum,\n   (\n       (sc.edge AND edge.[edge date] IS NOT NULL) OR\n       NOT sc.edge\n   ) AS edgenum,\n   (\n       (sc.drill AND drill.[drill date] IS NOT NULL) OR\n       NOT sc.drill\n   ) AS drillnum\nFROM\n   (((Sales_counter AS sc\n   LEFT JOIN cutter    AS cut      ON sc.Invsales = cut.invcutter)\n   LEFT JOIN edger     AS edge     ON sc.Invsales = edge.[inv edger])\n   LEFT JOIN drilling  AS drill    ON sc.Invsales = drill.[inv drill])\n   LEFT JOIN checker   AS chk      ON sc.Invsales = chk.[inv checker]\nWHERE\n   sc.cancelled = NO AND\n   sc.[sale time] >= NOW() - 365 AND\n   chk.[inv checker] IS NULL AND\n   (\n       sc.Cut = NO OR\n       cut.[cut status] = \"completed\"\n   ) AND\n   (\n       sc.Edge = NO OR\n       edge.[inv edger] IS NOT NULL\n   ) AND\n   (\n       sc.Drill = NO OR\n       drill.[inv drill] IS NOT NULL\n   )\nORDER BY\n   sc.urgent,\n   sc.[sales date],\n   sc.[sale time];";
+      string selectCommandText = "SELECT\n   sc.Invsales AS Inv,\n   sc.[Customer Name] AS Customer,\n   sc.[sale time] AS [Date],\n   SWITCH(\n       NOT sc.cut, 'NA',\n       cut.[cut date] IS NOT NULL, '☑',\n       true, '☐'\n   ) AS cutnum,\n   SWITCH(\n       NOT sc.edge, 'NA',\n       edge.[edge date] IS NOT NULL, '☑',\n       true, '☐'\n   ) AS edgenum,\n   SWITCH(\n       NOT sc.drill, 'NA',\n       drill.[drill date] IS NOT NULL, '☑',\n       true, '☐'\n   ) AS drillnum\nFROM\n   (((Sales_counter AS sc\n   LEFT JOIN cutter    AS cut      ON sc.Invsales = cut.invcutter)\n   LEFT JOIN edger     AS edge     ON sc.Invsales = edge.[inv edger])\n   LEFT JOIN drilling  AS drill    ON sc.Invsales = drill.[inv drill])\n   LEFT JOIN checker   AS chk      ON sc.Invsales = chk.[inv checker]\nWHERE\n   sc.cancelled = NO AND\n   sc.[sale time] >= NOW() - 365 AND\n   chk.[inv checker] IS NULL AND\n   (\n       sc.Cut = NO OR\n       cut.[cut status] = 'completed'\n   ) AND\n   (\n       sc.Edge = NO OR\n       edge.[inv edger] IS NOT NULL\n   ) AND\n   (\n       sc.Drill = NO OR\n       drill.[inv drill] IS NOT NULL\n   )\nORDER BY\n   sc.urgent,\n   sc.[sales date],\n   sc.[sale time];";
       string cmdText = "SELECT\n   chk.[inv checker] AS Inv, reps.[first name] AS Checker, chk.[check date] AS [Date]\nFROM\n   checker AS chk\n   LEFT JOIN reps ON chk.checker = reps.[employ no]\nWHERE\n   chk.[check date] >=  NOW() - @minutes/(24*60)\nORDER BY chk.[check time];";
       DataTable dataTable1 = new DataTable();
       DataTable dataTable2 = new DataTable();
@@ -98,9 +98,9 @@ namespace JT_Database_App
                 oleDbConnection.Open();
                 oleDbDataAdapter1.Fill(dataTable1);
                 oleDbDataAdapter2.Fill(dataTable2);
-                dataTable1.Columns.Add(new DataColumn("Cut complete", typeof(bool), "cutnum"));
-                dataTable1.Columns.Add(new DataColumn("Edge complete", typeof(bool), "edgenum"));
-                dataTable1.Columns.Add(new DataColumn("Drill complete", typeof(bool), "drillnum"));
+                dataTable1.Columns.Add(new DataColumn("Cut complete", typeof(string), "cutnum"));
+                dataTable1.Columns.Add(new DataColumn("Edge complete", typeof(string), "edgenum"));
+                dataTable1.Columns.Add(new DataColumn("Drill complete", typeof(string), "drillnum"));
               }
             }
           }

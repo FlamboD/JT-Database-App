@@ -92,16 +92,17 @@ namespace JT_Database_App
         "   (\n" +
         "       Sales_counter.[Customer Name] Is Not Null AND\n" +
         "       placed.InvQ_LU Is Null AND\n" +
-        "       Sales_counter.Cancelled = No\n" +
+        "       Sales_counter.Cancelled = No AND\n" +
+        "       Sales_counter.rep <> 18\n" +
         "   )\n" +
         "ORDER BY Sales_counter.Invsales;";
       string selectCommandText2 = "" +
-        "SELECT\n" +
+        "SELECT TOP 10\n" +
         "   placed.InvQ_LU, Sales_counter.[Customer Name], placed.[peg date]\n" +
         "FROM Sales_counter\n" +
         "   LEFT JOIN placed ON Sales_counter.Invsales = placed.InvQ_LU\n" +
         "WHERE\n" +
-        "   placed.[peg date] >= NOW() - @minutes/(24*60) AND\n" +
+        // "   placed.[peg date] >= NOW() - @minutes/(24*60) AND\n" +
         "   Sales_counter.Cancelled = No\n" +
         "ORDER BY\n" +
         "   placed.[peg time] DESC;";
@@ -117,7 +118,7 @@ namespace JT_Database_App
             {
               selectConnection.Open();
               oleDbDataAdapter1.Fill(dataTable1);
-              oleDbDataAdapter2.SelectCommand.Parameters.AddWithValue("@minutes", (object)Validation.showForMins);
+              //oleDbDataAdapter2.SelectCommand.Parameters.AddWithValue("@minutes", (object)Validation.showForMins);
               oleDbDataAdapter2.Fill(dataTable2);
             }
           }
@@ -136,23 +137,24 @@ namespace JT_Database_App
 
       this.Invoke(new Action(() =>
       {
-        this.dbNotPlaced.RowTemplate.DefaultCellStyle.Font = new Font(FontFamily.GenericSansSerif, 8f);
+        this.dbNotPlaced.RowTemplate.DefaultCellStyle.Font = new Font(FontFamily.GenericSansSerif, 16f);
         this.dbNotPlaced.RowTemplate.Height = 25;
         if (!Validation.CompareDataTables(dataTable1, (DataTable)this.dbNotPlaced.DataSource))
           this.dbNotPlaced.DataSource = (object)dataTable1;
         if (this.dbNotPlaced.DataSource != null)
         {
           this.dbNotPlaced.Columns["sales date"].DefaultCellStyle.Format = "dd/MM/yy HH:mm:ss";
-          this.dbNotPlaced.Columns["invsales"].Width = 110;
+          this.dbNotPlaced.Columns["sales date"].AutoSizeMode = DataGridViewAutoSizeColumnMode.DisplayedCells;
+          this.dbNotPlaced.Columns["invsales"].AutoSizeMode = DataGridViewAutoSizeColumnMode.DisplayedCells;
         }
-        this.dbRecentlyPegged.RowTemplate.DefaultCellStyle.Font = new Font(FontFamily.GenericSansSerif, 8f);
+        this.dbRecentlyPegged.RowTemplate.DefaultCellStyle.Font = new Font(FontFamily.GenericSansSerif, 16f);
         this.dbRecentlyPegged.RowTemplate.Height = 25;
         if (!Validation.CompareDataTables(dataTable2, (DataTable)this.dbRecentlyPegged.DataSource))
           this.dbRecentlyPegged.DataSource = (object)dataTable2;
         if (this.dbRecentlyPegged.DataSource != null)
         {
-          this.dbRecentlyPegged.Columns["invq_lu"].Width = 150;
-          this.dbRecentlyPegged.Columns["peg date"].Width = 200;
+          this.dbRecentlyPegged.Columns["invq_lu"].AutoSizeMode = DataGridViewAutoSizeColumnMode.DisplayedCells;
+          this.dbRecentlyPegged.Columns["peg date"].AutoSizeMode = DataGridViewAutoSizeColumnMode.DisplayedCells;
         }
       }));
     }
@@ -197,9 +199,18 @@ namespace JT_Database_App
         this.txtJobNum.Text = this.txtJobNum.Text.ToUpper();
         if (new Validation().invPlaced(this.txtJobNum.Text))
         {
-          this.sInv = this.txtJobNum.Text;
-          this.txtJobNum.BackColor = Color.Green;
-          this.insertRecord();
+          if (new Validation().invPlacedCooldown(this.txtJobNum.Text))
+          {
+            this.sInv = this.txtJobNum.Text;
+            this.txtJobNum.BackColor = Color.Green;
+            this.insertRecord();
+          }
+          else
+          {
+            this.sInv = (string)null;
+            AutoClosingMessageBox.Show(string.Format("Invoice {0} has only been placed today, do older jobs first!", (object)this.txtJobNum.Text), "Error", 3000);
+            this.txtJobNum.Text = "";
+          }
         }
         else
         {
@@ -271,10 +282,9 @@ namespace JT_Database_App
 
     private void InitializeComponent()
     {
-      System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle9 = new System.Windows.Forms.DataGridViewCellStyle();
-      System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle10 = new System.Windows.Forms.DataGridViewCellStyle();
-      System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle11 = new System.Windows.Forms.DataGridViewCellStyle();
-      System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle12 = new System.Windows.Forms.DataGridViewCellStyle();
+      System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle1 = new System.Windows.Forms.DataGridViewCellStyle();
+      System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
+      System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle3 = new System.Windows.Forms.DataGridViewCellStyle();
       this.dbRecentlyPegged = new System.Windows.Forms.DataGridView();
       this.dbNotPlaced = new System.Windows.Forms.DataGridView();
       this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
@@ -284,7 +294,7 @@ namespace JT_Database_App
       this.txtJobNum = new System.Windows.Forms.TextBox();
       this.label1 = new System.Windows.Forms.Label();
       this.label2 = new System.Windows.Forms.Label();
-      this.menuStrip1 = new cmpJTMenuStrip();
+      this.menuStrip1 = new JT_Database_App.cmpJTMenuStrip();
       ((System.ComponentModel.ISupportInitialize)(this.dbRecentlyPegged)).BeginInit();
       ((System.ComponentModel.ISupportInitialize)(this.dbNotPlaced)).BeginInit();
       this.tableLayoutPanel1.SuspendLayout();
@@ -297,54 +307,52 @@ namespace JT_Database_App
       this.dbRecentlyPegged.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
       this.dbRecentlyPegged.AutoSizeRowsMode = System.Windows.Forms.DataGridViewAutoSizeRowsMode.AllCells;
       this.dbRecentlyPegged.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-      dataGridViewCellStyle9.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-      dataGridViewCellStyle9.BackColor = System.Drawing.SystemColors.Window;
-      dataGridViewCellStyle9.Font = new System.Drawing.Font("Microsoft Sans Serif", 19.875F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-      dataGridViewCellStyle9.ForeColor = System.Drawing.SystemColors.ControlText;
-      dataGridViewCellStyle9.SelectionBackColor = System.Drawing.SystemColors.Highlight;
-      dataGridViewCellStyle9.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
-      dataGridViewCellStyle9.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
-      this.dbRecentlyPegged.DefaultCellStyle = dataGridViewCellStyle9;
+      dataGridViewCellStyle1.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+      dataGridViewCellStyle1.BackColor = System.Drawing.SystemColors.Window;
+      dataGridViewCellStyle1.Font = new System.Drawing.Font("Microsoft Sans Serif", 19.875F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+      dataGridViewCellStyle1.ForeColor = System.Drawing.SystemColors.ControlText;
+      dataGridViewCellStyle1.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+      dataGridViewCellStyle1.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+      dataGridViewCellStyle1.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
+      this.dbRecentlyPegged.DefaultCellStyle = dataGridViewCellStyle1;
       this.dbRecentlyPegged.Dock = System.Windows.Forms.DockStyle.Fill;
-      this.dbRecentlyPegged.Location = new System.Drawing.Point(0, 859);
+      this.dbRecentlyPegged.Location = new System.Drawing.Point(0, 446);
       this.dbRecentlyPegged.Margin = new System.Windows.Forms.Padding(0);
       this.dbRecentlyPegged.Name = "dbRecentlyPegged";
       this.dbRecentlyPegged.RowHeadersWidth = 20;
       this.dbRecentlyPegged.RowTemplate.Height = 33;
-      this.dbRecentlyPegged.Size = new System.Drawing.Size(1774, 540);
+      this.dbRecentlyPegged.Size = new System.Drawing.Size(887, 281);
       this.dbRecentlyPegged.TabIndex = 6;
       // 
       // dbNotPlaced
       // 
       this.dbNotPlaced.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
-      dataGridViewCellStyle10.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-      dataGridViewCellStyle10.BackColor = System.Drawing.SystemColors.Control;
-      dataGridViewCellStyle10.Font = new System.Drawing.Font("Microsoft Sans Serif", 7.875F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-      dataGridViewCellStyle10.ForeColor = System.Drawing.SystemColors.WindowText;
-      dataGridViewCellStyle10.Format = "g";
-      dataGridViewCellStyle10.NullValue = null;
-      dataGridViewCellStyle10.SelectionBackColor = System.Drawing.SystemColors.Highlight;
-      dataGridViewCellStyle10.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
-      dataGridViewCellStyle10.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
-      this.dbNotPlaced.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle10;
+      dataGridViewCellStyle2.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+      dataGridViewCellStyle2.BackColor = System.Drawing.SystemColors.Control;
+      dataGridViewCellStyle2.Font = new System.Drawing.Font("Microsoft Sans Serif", 7.875F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+      dataGridViewCellStyle2.ForeColor = System.Drawing.SystemColors.WindowText;
+      dataGridViewCellStyle2.Format = "g";
+      dataGridViewCellStyle2.NullValue = null;
+      dataGridViewCellStyle2.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+      dataGridViewCellStyle2.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+      dataGridViewCellStyle2.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
+      this.dbNotPlaced.ColumnHeadersDefaultCellStyle = dataGridViewCellStyle2;
       this.dbNotPlaced.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-      dataGridViewCellStyle11.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
-      dataGridViewCellStyle11.BackColor = System.Drawing.SystemColors.Window;
-      dataGridViewCellStyle11.Font = new System.Drawing.Font("Microsoft Sans Serif", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-      dataGridViewCellStyle11.ForeColor = System.Drawing.SystemColors.ControlText;
-      dataGridViewCellStyle11.SelectionBackColor = System.Drawing.SystemColors.Highlight;
-      dataGridViewCellStyle11.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
-      dataGridViewCellStyle11.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
-      this.dbNotPlaced.DefaultCellStyle = dataGridViewCellStyle11;
+      dataGridViewCellStyle3.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+      dataGridViewCellStyle3.BackColor = System.Drawing.SystemColors.Window;
+      dataGridViewCellStyle3.Font = new System.Drawing.Font("Microsoft Sans Serif", 18F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+      dataGridViewCellStyle3.ForeColor = System.Drawing.SystemColors.ControlText;
+      dataGridViewCellStyle3.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+      dataGridViewCellStyle3.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+      dataGridViewCellStyle3.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
+      this.dbNotPlaced.DefaultCellStyle = dataGridViewCellStyle3;
       this.dbNotPlaced.Dock = System.Windows.Forms.DockStyle.Fill;
-      this.dbNotPlaced.Location = new System.Drawing.Point(887, 0);
+      this.dbNotPlaced.Location = new System.Drawing.Point(443, 0);
       this.dbNotPlaced.Margin = new System.Windows.Forms.Padding(0);
       this.dbNotPlaced.Name = "dbNotPlaced";
       this.dbNotPlaced.RowHeadersWidth = 20;
-      dataGridViewCellStyle12.Font = new System.Drawing.Font("Microsoft Sans Serif", 15F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-      this.dbNotPlaced.RowsDefaultCellStyle = dataGridViewCellStyle12;
       this.dbNotPlaced.RowTemplate.Height = 33;
-      this.dbNotPlaced.Size = new System.Drawing.Size(887, 809);
+      this.dbNotPlaced.Size = new System.Drawing.Size(444, 420);
       this.dbNotPlaced.TabIndex = 7;
       // 
       // tableLayoutPanel1
@@ -359,10 +367,10 @@ namespace JT_Database_App
       this.tableLayoutPanel1.Margin = new System.Windows.Forms.Padding(0);
       this.tableLayoutPanel1.Name = "tableLayoutPanel1";
       this.tableLayoutPanel1.RowCount = 3;
-      this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 50F));
+      this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 26F));
       this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 60F));
       this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 40F));
-      this.tableLayoutPanel1.Size = new System.Drawing.Size(1774, 1399);
+      this.tableLayoutPanel1.Size = new System.Drawing.Size(887, 727);
       this.tableLayoutPanel1.TabIndex = 14;
       // 
       // tableLayoutPanel2
@@ -373,12 +381,12 @@ namespace JT_Database_App
       this.tableLayoutPanel2.Controls.Add(this.dbNotPlaced, 1, 0);
       this.tableLayoutPanel2.Controls.Add(this.tableLayoutPanel3, 0, 0);
       this.tableLayoutPanel2.Dock = System.Windows.Forms.DockStyle.Fill;
-      this.tableLayoutPanel2.Location = new System.Drawing.Point(0, 50);
+      this.tableLayoutPanel2.Location = new System.Drawing.Point(0, 26);
       this.tableLayoutPanel2.Margin = new System.Windows.Forms.Padding(0);
       this.tableLayoutPanel2.Name = "tableLayoutPanel2";
       this.tableLayoutPanel2.RowCount = 1;
       this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
-      this.tableLayoutPanel2.Size = new System.Drawing.Size(1774, 809);
+      this.tableLayoutPanel2.Size = new System.Drawing.Size(887, 420);
       this.tableLayoutPanel2.TabIndex = 7;
       // 
       // tableLayoutPanel3
@@ -397,8 +405,8 @@ namespace JT_Database_App
       this.tableLayoutPanel3.RowCount = 2;
       this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 33.33333F));
       this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 33.33333F));
-      this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
-      this.tableLayoutPanel3.Size = new System.Drawing.Size(887, 809);
+      this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 10F));
+      this.tableLayoutPanel3.Size = new System.Drawing.Size(443, 420);
       this.tableLayoutPanel3.TabIndex = 8;
       // 
       // txtTime
@@ -407,18 +415,20 @@ namespace JT_Database_App
       this.txtTime.BorderStyle = System.Windows.Forms.BorderStyle.None;
       this.txtTime.Enabled = false;
       this.txtTime.Font = new System.Drawing.Font("Microsoft Sans Serif", 19.875F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-      this.txtTime.Location = new System.Drawing.Point(446, 576);
+      this.txtTime.Location = new System.Drawing.Point(223, 300);
+      this.txtTime.Margin = new System.Windows.Forms.Padding(2);
       this.txtTime.Name = "txtTime";
-      this.txtTime.Size = new System.Drawing.Size(438, 60);
+      this.txtTime.Size = new System.Drawing.Size(218, 30);
       this.txtTime.TabIndex = 2;
       // 
       // txtJobNum
       // 
       this.txtJobNum.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
       this.txtJobNum.Font = new System.Drawing.Font("Microsoft Sans Serif", 19.875F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-      this.txtJobNum.Location = new System.Drawing.Point(446, 168);
+      this.txtJobNum.Location = new System.Drawing.Point(223, 86);
+      this.txtJobNum.Margin = new System.Windows.Forms.Padding(2);
       this.txtJobNum.Name = "txtJobNum";
-      this.txtJobNum.Size = new System.Drawing.Size(438, 67);
+      this.txtJobNum.Size = new System.Drawing.Size(218, 37);
       this.txtJobNum.TabIndex = 1;
       this.txtJobNum.KeyUp += new System.Windows.Forms.KeyEventHandler(this.txtJobNum_KeyUp);
       // 
@@ -427,9 +437,10 @@ namespace JT_Database_App
       this.label1.AutoSize = true;
       this.label1.Dock = System.Windows.Forms.DockStyle.Fill;
       this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 19.875F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-      this.label1.Location = new System.Drawing.Point(3, 0);
+      this.label1.Location = new System.Drawing.Point(2, 0);
+      this.label1.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
       this.label1.Name = "label1";
-      this.label1.Size = new System.Drawing.Size(437, 404);
+      this.label1.Size = new System.Drawing.Size(217, 210);
       this.label1.TabIndex = 0;
       this.label1.Text = "Job Num";
       this.label1.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -439,31 +450,34 @@ namespace JT_Database_App
       this.label2.AutoSize = true;
       this.label2.Dock = System.Windows.Forms.DockStyle.Fill;
       this.label2.Font = new System.Drawing.Font("Microsoft Sans Serif", 19.875F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-      this.label2.Location = new System.Drawing.Point(3, 404);
+      this.label2.Location = new System.Drawing.Point(2, 210);
+      this.label2.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
       this.label2.Name = "label2";
-      this.label2.Size = new System.Drawing.Size(437, 405);
+      this.label2.Size = new System.Drawing.Size(217, 210);
       this.label2.TabIndex = 1;
       this.label2.Text = "Time";
       this.label2.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
       // 
       // menuStrip1
       // 
-      this.menuStrip1.GripMargin = new System.Windows.Forms.Padding(2, 2, 0, 2);
+      this.menuStrip1.Form = null;
       this.menuStrip1.ImageScalingSize = new System.Drawing.Size(32, 32);
       this.menuStrip1.Location = new System.Drawing.Point(0, 0);
       this.menuStrip1.Name = "menuStrip1";
-      this.menuStrip1.Size = new System.Drawing.Size(1774, 40);
+      this.menuStrip1.Padding = new System.Windows.Forms.Padding(3, 1, 0, 1);
+      this.menuStrip1.Size = new System.Drawing.Size(887, 24);
       this.menuStrip1.TabIndex = 8;
       this.menuStrip1.Text = "menuStrip1";
       // 
       // frmPlaced
       // 
-      this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 25F);
+      this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
       this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-      this.ClientSize = new System.Drawing.Size(1774, 1399);
+      this.ClientSize = new System.Drawing.Size(887, 727);
       this.Controls.Add(this.tableLayoutPanel1);
       this.Cursor = System.Windows.Forms.Cursors.IBeam;
       this.MainMenuStrip = this.menuStrip1;
+      this.Margin = new System.Windows.Forms.Padding(2);
       this.Name = "frmPlaced";
       this.Text = "Placed";
       this.Load += new System.EventHandler(this.Form1_Load);

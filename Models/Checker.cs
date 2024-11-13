@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using CData.Sql;
 
 namespace JT_Database_App.Models
 {
@@ -15,5 +16,9 @@ namespace JT_Database_App.Models
     public Rep Rep { get; set; }
     public DateTime Time { get; set; }
     public SalesCounter Sales { get; set; }
+
+        void main()
+        {
+        }
   }
 }

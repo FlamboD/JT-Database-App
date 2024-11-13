@@ -69,7 +69,7 @@ namespace JT_Database_App
         connection.Open();
         using (OleDbCommand oleDbCommand = new OleDbCommand(cmdText, connection))
         {
-          oleDbCommand.Parameters.AddWithValue("@rep", (object) _repId);
+          oleDbCommand.Parameters.AddWithValue("@rep", (object)_repId);
           using (OleDbDataReader oleDbDataReader = oleDbCommand.ExecuteReader())
             return oleDbDataReader.Read() ? int.Parse(oleDbDataReader.GetString(0)) : -1;
         }
@@ -84,7 +84,7 @@ namespace JT_Database_App
         connection.Open();
         using (OleDbCommand oleDbCommand = new OleDbCommand(cmdText, connection))
         {
-          oleDbCommand.Parameters.AddWithValue("@id", (object) _id);
+          oleDbCommand.Parameters.AddWithValue("@id", (object)_id);
           return oleDbCommand.ExecuteScalar().ToString();
         }
       }
@@ -98,7 +98,7 @@ namespace JT_Database_App
         using (OleDbCommand oleDbCommand = new OleDbCommand(cmdText, connection))
         {
           connection.Open();
-          oleDbCommand.Parameters.AddWithValue("@machine", (object) _machineName);
+          oleDbCommand.Parameters.AddWithValue("@machine", (object)_machineName);
           using (OleDbDataReader oleDbDataReader = oleDbCommand.ExecuteReader())
             return oleDbDataReader.Read() ? oleDbDataReader.GetInt32(oleDbDataReader.GetOrdinal("ID")) : -1;
         }
@@ -113,7 +113,7 @@ namespace JT_Database_App
         using (OleDbCommand oleDbCommand = new OleDbCommand(cmdText, connection))
         {
           connection.Open();
-          oleDbCommand.Parameters.AddWithValue("@status", (object) _status);
+          oleDbCommand.Parameters.AddWithValue("@status", (object)_status);
           using (OleDbDataReader oleDbDataReader = oleDbCommand.ExecuteReader())
             return oleDbDataReader.Read() ? oleDbDataReader.GetInt32(oleDbDataReader.GetOrdinal("ID")) : -1;
         }
@@ -128,8 +128,8 @@ namespace JT_Database_App
         using (OleDbCommand oleDbCommand = new OleDbCommand(cmdText, connection))
         {
           connection.Open();
-          oleDbCommand.Parameters.AddWithValue("@status", (object) _status);
-          return (string) oleDbCommand.ExecuteScalar();
+          oleDbCommand.Parameters.AddWithValue("@status", (object)_status);
+          return (string)oleDbCommand.ExecuteScalar();
         }
       }
     }
@@ -142,8 +142,8 @@ namespace JT_Database_App
         using (OleDbCommand oleDbCommand = new OleDbCommand(cmdText, connection))
         {
           connection.Open();
-          oleDbCommand.Parameters.AddWithValue("@inv", (object) _inv);
-          return oleDbCommand.ExecuteScalar() != null ? this.status((string) oleDbCommand.ExecuteScalar()) : -1;
+          oleDbCommand.Parameters.AddWithValue("@inv", (object)_inv);
+          return oleDbCommand.ExecuteScalar() != null ? this.status((string)oleDbCommand.ExecuteScalar()) : -1;
         }
       }
     }
@@ -156,8 +156,8 @@ namespace JT_Database_App
         using (OleDbCommand oleDbCommand = new OleDbCommand(cmdText, connection))
         {
           connection.Open();
-          oleDbCommand.Parameters.AddWithValue("@inv", (object) _inv);
-          return oleDbCommand.ExecuteScalar() != null ? this.status((string) oleDbCommand.ExecuteScalar()) : -1;
+          oleDbCommand.Parameters.AddWithValue("@inv", (object)_inv);
+          return oleDbCommand.ExecuteScalar() != null ? this.status((string)oleDbCommand.ExecuteScalar()) : -1;
         }
       }
     }
@@ -174,7 +174,7 @@ namespace JT_Database_App
         oleDbCommandBO.Parameters.AddWithValue("@inv", (object)_invNumber);
         odbcCommandIQ.Parameters.AddWithValue("@inv", (object)_invNumber);
         return (
-          (int.Parse(oleDbCommandBO.ExecuteScalar().ToString()) == 0) && 
+          (int.Parse(oleDbCommandBO.ExecuteScalar().ToString()) == 0) &&
           (int.Parse(odbcCommandIQ.ExecuteScalar().ToString()) != 0)
         );
       }
@@ -212,13 +212,43 @@ namespace JT_Database_App
 
     public bool invPlaced(string _invNumber)
     {
-      string _where = "WHERE\n   sc.invsales = @inv AND\n   (\n       sc.[Customer Name] Is Not Null AND\n       p.InvQ_LU Is Null AND\n       sc.Cancelled = NO\n   );";
+      string _where = "WHERE\n" +
+        "   sc.invsales = @inv AND\n" +
+        "   (\n" +
+        "       sc.[Customer Name] Is Not Null AND\n" +
+        "       p.InvQ_LU Is Null AND\n" +
+        "       sc.Cancelled = NO AND\n" +
+        "       sc.rep <> 18\n" +
+        "   );";
       using (OleDbConnection connection = new OleDbConnection(Validation.BOConnectionStr))
       {
         using (OleDbCommand oleDbCommand = new OleDbCommand(Validation.select(_where), connection))
         {
           connection.Open();
-          oleDbCommand.Parameters.AddWithValue("@inv", (object) _invNumber);
+          oleDbCommand.Parameters.AddWithValue("@inv", (object)_invNumber);
+          return oleDbCommand.ExecuteScalar() != null;
+        }
+      }
+    }
+
+
+
+    public bool invPlacedCooldown(string _invNumber)
+    {
+      // All conditions need to be true to be good
+      // If Placed today and no other jobs OR if placed before today
+      string _where = "WHERE\n" +
+        "   sc.invsales = @inv AND\n" +
+        "   (\n" +
+        "       p.[peg date] + 1 < NOW() OR\n" +
+        "       (SELECT COUNT(*) FROM placed AS psq WHERE psq.[peg date] + 1 > NOW()) = 0\n" +
+        "   );";
+      using (OleDbConnection connection = new OleDbConnection(Validation.BOConnectionStr))
+      {
+        using (OleDbCommand oleDbCommand = new OleDbCommand(Validation.select(_where), connection))
+        {
+          connection.Open();
+          oleDbCommand.Parameters.AddWithValue("@inv", (object)_invNumber);
           return oleDbCommand.ExecuteScalar() != null;
         }
       }
@@ -229,15 +259,44 @@ namespace JT_Database_App
       Debug.WriteLine($"INV = {_invNumber}");
       Dictionary<string, int> hours = this.getHours();
       // string _where = "WHERE sc.invsales = @inv AND \nsc.cut = YES AND \nsc.[sale time] > NOW() - 365 AND \n(\n   c.[cut date] IS NULL OR\n   c.[cut date] >= NOW() - " + Validation.showForMins.ToString() + "/(24*60) OR\n   c.[cut status] <> \"completed\"\n) AND \n( \n   sc.urgent = YES OR \n   ( \n       sc.timber = YES AND \n       sc.[sale time] < NOW() - @timber/24 \n   ) OR \n   ( \n       sc.timber = NO AND \n       sc.[sale time] < NOW() - @boards/24 \n   )\n)";
-      string _where = "WHERE sc.invsales = @inv AND \nsc.cut = YES AND \n \n(\n   c.[cut date] IS NULL OR\n   c.[cut date] >= NOW() - " + Validation.showForMins.ToString() + "/(24*60) OR\n   c.[cut status] <> \"completed\"\n) AND \n( \n   sc.urgent = YES OR \n   ( \n       sc.timber = YES AND \n       sc.[sale time] < NOW() - @timber/24 \n   ) OR \n   ( \n       sc.timber = NO AND \n       sc.[sale time] < NOW() - @boards/24 \n   )\n)";
+      string _where = "WHERE sc.invsales = @inv AND \n" +
+                "sc.cut = YES AND \n" +
+                "InvQ_LU IS NOT NULL AND\n" +
+                " \n" +
+                "(\n" +
+                "   c.[cut date] IS NULL OR\n" +
+                "   c.[cut date] >= NOW() - " + Validation.showForMins.ToString() + "/(24*60) OR\n" +
+                "   c.[cut status] <> \"completed\"\n" +
+                ") AND \n" +
+                "( \n" +
+                "   sc.urgent = YES OR \n" +
+                "   ( \n" +
+                "       sc.timber = YES AND \n" +
+                "       sc.[sale time] < NOW() - @timber/24 \n" +
+                "   ) OR \n" +
+                "   ( \n" +
+                "       sc.timber = NO AND \n" +
+                "       sc.[sale time] < NOW() - @boards/24 \n" +
+                "   )\n" +
+                ") AND \n" +
+                " (\n" +
+                "   (\n" +
+                "     (sc.Cut = Yes) AND\n" +
+                "     (f.inv_filled Is Null) AND\n" +
+                "     (p.InvQ_LU Is Not Null) AND\n" +
+                "     (sc.Cancelled = No) AND\n" +
+                "     (c.[cut date] Is Null)\n" +
+                "   )\n" +
+                " )";
       using (OleDbConnection connection = new OleDbConnection(Validation.BOConnectionStr))
       {
         using (OleDbCommand oleDbCommand = new OleDbCommand(Validation.select(_where), connection))
         {
           connection.Open();
-          oleDbCommand.Parameters.AddWithValue("@inv", (object) _invNumber);
-          oleDbCommand.Parameters.AddWithValue("@timber", (object) hours["timber"]);
-          oleDbCommand.Parameters.AddWithValue("@boards", (object) hours["boards"]);
+          oleDbCommand.Parameters.AddWithValue("@inv", (object)_invNumber);
+          oleDbCommand.Parameters.AddWithValue("@timber", (object)hours["timber"]);
+          oleDbCommand.Parameters.AddWithValue("@boards", (object)hours["boards"]);
+
           return oleDbCommand.ExecuteScalar() != null;
         }
       }
@@ -251,7 +310,7 @@ namespace JT_Database_App
         using (OleDbCommand oleDbCommand = new OleDbCommand(Validation.select(_where), connection))
         {
           connection.Open();
-          oleDbCommand.Parameters.AddWithValue("@inv", (object) _invNumber);
+          oleDbCommand.Parameters.AddWithValue("@inv", (object)_invNumber);
           return oleDbCommand.ExecuteScalar() != null;
         }
       }
@@ -265,7 +324,7 @@ namespace JT_Database_App
         using (OleDbCommand oleDbCommand = new OleDbCommand(Validation.select(_where), connection))
         {
           connection.Open();
-          oleDbCommand.Parameters.AddWithValue("@inv", (object) _invNumber);
+          oleDbCommand.Parameters.AddWithValue("@inv", (object)_invNumber);
           return oleDbCommand.ExecuteScalar() != null;
         }
       }
@@ -279,7 +338,7 @@ namespace JT_Database_App
         using (OleDbCommand oleDbCommand = new OleDbCommand(Validation.select(_where), connection))
         {
           connection.Open();
-          oleDbCommand.Parameters.AddWithValue("@inv", (object) _invNumber);
+          oleDbCommand.Parameters.AddWithValue("@inv", (object)_invNumber);
           return oleDbCommand.ExecuteScalar() != null;
         }
       }
@@ -293,7 +352,7 @@ namespace JT_Database_App
         using (OleDbCommand oleDbCommand = new OleDbCommand(Validation.select(_where), connection))
         {
           connection.Open();
-          oleDbCommand.Parameters.AddWithValue("@inv", (object) _invNumber);
+          oleDbCommand.Parameters.AddWithValue("@inv", (object)_invNumber);
           return oleDbCommand.ExecuteScalar() != null;
         }
       }

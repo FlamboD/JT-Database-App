@@ -55,6 +55,8 @@ namespace JT_Database_App
     private DataGridViewCellStyle dataGridViewCellStyleLightGrey;
     private DataGridViewCellStyle dataGridViewCellStyleOrange;
     private DataGridViewCellStyle dataGridViewCellStyleYellow;
+    private TableLayoutPanel tableLayoutPanel4;
+    private DataGridView dbJobItems;
     private Task refreshTask = Task.Run(() => { });
 
     public frmCutter()
@@ -71,8 +73,10 @@ namespace JT_Database_App
     {
       this.txtJobNum.Focus();
       this.TmrRefresh.Interval = 500;
-      this.TmrRefresh.Tick += (EventHandler) ((s, a) => this.refresh());
+      this.TmrRefresh.Tick += (EventHandler)((s, a) => this.refresh());
       this.TmrRefresh.Start();
+      //AutoClosingMessageBox.Show(PublicMethods.IQConnectionString, "Error", 3000);
+      //AutoClosingMessageBox.Show(PublicMethods.BOConnectionString, "Error", 3000);
       this.refresh();
     }
 
@@ -81,14 +85,15 @@ namespace JT_Database_App
       if (!this.Visible) return;
 
       this.txtTime.Text = DateTime.Now.ToString();
-      
+
       if (refreshTask.IsCompleted)
       {
         refreshTask = Task.Run(FillTables);
         try
         {
           await Task.Run(refreshTask.Wait);
-        } catch(AggregateException aex)
+        }
+        catch (AggregateException aex)
         {
           Exception ex = aex.GetBaseException();
           Debug.WriteLine(ex.StackTrace);
@@ -102,7 +107,7 @@ namespace JT_Database_App
       // Debug.WriteLine("ASYNC TASK STARTED");
       string notCutCmdText = "" +
         "SELECT\n" +
-        " sc.Invsales, sc.[Customer name], sc.timber, sc.urgent, FIX(NOW() - sc.[sale time]) AS [Days ago], sc.[sale time], c.[cut status]\n" +
+        " sc.Invsales, sc.[Customer name], sc.Brd1_Qty AS Brd1, sc.Brd2_Qty AS Brd2, sc.timber, sc.urgent, FIX(NOW() - sc.[sale time]) AS [Days ago], sc.[sale time], c.[cut status]\n" +
         "FROM\n" +
         " (\n" +
         "   (\n" +
@@ -138,7 +143,17 @@ namespace JT_Database_App
         " c.[cut status] = 'paused'\n" +
         "ORDER BY\n" +
         " sc.urgent, c.[cut status] DESC, sc.timber, sc.[sales date], sc.[sale time];";
-      string cmdText = "SELECT    c.invcutter, c.cutter, c.[cut time], c.[cut status],    SWITCH(       m.machine IS NULL, c.machine,       TRUE, m.machine    ) as machine,    sc.[customer name] FROM(cutter AS c    LEFT JOIN sales_counter AS sc ON c.invcutter = sc.invsales)    LEFT OUTER JOIN machines AS m ON c.machine = CStr(m.ID) WHERE    c.[cut status] <> 'completed' OR   c.[cut date] > NOW() - @minutes/(24*60) ORDER BY c.[cut status] = 'completed', c.[cut time]";
+      string cmdText = "SELECT TOP 7" +
+                "    c.invcutter, c.cutter, c.[cut time], c.[cut status]," +
+                "    SWITCH(" +
+                "       m.machine IS NULL, c.machine," +
+                "       TRUE, m.machine" +
+                "    ) as machine," +
+                "    sc.[customer name] FROM(cutter AS c" +
+                "    LEFT JOIN sales_counter AS sc ON c.invcutter = sc.invsales)" +
+                "    LEFT OUTER JOIN machines AS m ON c.machine = CStr(m.ID) WHERE" +
+                "    c.[cut status] = 'completed' OR c.[cut status] = 'paused'" +
+                "    ORDER BY c.[cut status] <> 'completed', c.[cut time]";
       DataTable dataTable1 = new DataTable();
       DataTable dataTable2 = new DataTable();
       {
@@ -181,6 +196,8 @@ namespace JT_Database_App
             this.dbNotCut.Columns["timber"].Width = 50;
             this.dbNotCut.Columns["urgent"].Width = 50;
             this.dbNotCut.Columns["Days ago"].Width = 50;
+            this.dbNotCut.Columns["Brd1"].Width = 50;
+            this.dbNotCut.Columns["Brd2"].Width = 50;
             this.dbNotCut.Columns["sale time"].Visible = false;
             this.dbNotCut.Columns["cut status"].Visible = false;
             foreach (DataGridViewRow row in (IEnumerable)this.dbNotCut.Rows)
@@ -188,10 +205,34 @@ namespace JT_Database_App
               row.DefaultCellStyle = dataGridViewCellStyleDefault;
               if (row.Cells["timber"] != null && row.Cells["timber"].Value != null)
               {
+                DateTime saleTime = ((DateTime)row.Cells["sale time"].Value);
+                DateTime boardCutoff = DateTime.Now.AddHours((double)-hours["boards"]);
+                TimeSpan x = saleTime - boardCutoff;
+
+                var hoursSinceSale = (DateTime.Now - (DateTime)row.Cells["sale time"].Value).TotalHours;
+
+                bool isCutOff = hours["boards"] > hoursSinceSale;
                 if ((bool)row.Cells["urgent"].Value)
                   row.DefaultCellStyle = dataGridViewCellStyleRed;
-                else if ((bool)row.Cells["timber"].Value && (DateTime)row.Cells["sale time"].Value > DateTime.Now.AddHours((double)-hours["timber"]) || !(bool)row.Cells["timber"].Value && (DateTime)row.Cells["sale time"].Value > DateTime.Now.AddHours((double)-hours["boards"]))
-                  row.DefaultCellStyle.BackColor = Color.LightGray;
+                else if (
+                          (
+                            ((bool)row.Cells["timber"].Value) &&
+                            (
+                              ((DateTime)row.Cells["sale time"].Value) >
+                              DateTime.Now.AddHours((double)-hours["timber"])
+                            )
+                          ) ||
+                          (
+                            (!(bool)row.Cells["timber"].Value) &&
+                            (
+                              //((DateTime)row.Cells["sale time"].Value) >
+                              //DateTime.Now.AddHours((double)-hours["boards"])
+                              isCutOff
+                            )
+                          )
+                      )
+                  row.DefaultCellStyle = dataGridViewCellStyleLightGrey;
+                else row.DefaultCellStyle = dataGridViewCellStyleDefault;
               }
               if (!(row.Cells["cut status"].Value is DBNull))
                 row.DefaultCellStyle = dataGridViewCellStyleYellow;
@@ -210,6 +251,9 @@ namespace JT_Database_App
             this.dbRecentlyCut.Columns["machine"].Width = 150;
             this.dbRecentlyCut.Columns["cut time"].DefaultCellStyle = dataGridViewCellStyleDateFormat;
           }
+          int selectedindex;
+          if (this.dbNotCut.SelectedRows.Count == 0) selectedindex = 0;
+          else selectedindex = this.dbNotCut.SelectedRows[0].Index;
         }));
       };
     }
@@ -217,7 +261,7 @@ namespace JT_Database_App
     private void ResetForm()
     {
       this.curStatus = -1;
-      this.sInv = (string) null;
+      this.sInv = (string)null;
       this.sRep = -1;
       this.sStatus = -1;
       this.sMachine = -1;
@@ -292,7 +336,7 @@ namespace JT_Database_App
         };
       };
 
-      if(!AppSettings.ManualInput)
+      if (!AppSettings.ManualInput)
       {
         this.inputChecker = new Timer();
         this.inputChecker.Interval = 100;
@@ -301,7 +345,8 @@ namespace JT_Database_App
           action();
         });
         this.inputChecker.Start();
-      } else if(e.KeyCode == Keys.Return)
+      }
+      else if (e.KeyCode == Keys.Return)
       {
         action();
       }
@@ -313,21 +358,33 @@ namespace JT_Database_App
       if (new Validation().invCutter(this.txtJobNum.Text))
       {
         FloatingForm frmf = new FloatingForm();
-        frmf.Show();
+        //frmf.Show();
         // frmf.FormClosing += (a, b) => { ResetForm(); };
         // frmf.Focus();
 
+        //AutoClosingMessageBox.Show(PublicMethods.IQConnectionString, "Error", 3000);
         using (OdbcConnection IQConn = new OdbcConnection(PublicMethods.IQConnectionString))
-        using (OdbcCommand odbcCommandIQ = new OdbcCommand("SELECT stk.descript, COUNT(stk.descript), 'Not started' AS status from stoctran as st LEFT JOIN stock as stk ON st.code = stk.code WHERE st.reference = ? GROUP BY stk.descript", IQConn))
+        using (OdbcCommand odbcCommandIQ = new OdbcCommand("SELECT \n" +
+          " stk.descript, COUNT(stk.descript), 'Not started' AS status \n" +
+          "FROM stoctran as st \n" +
+          " LEFT JOIN stock as stk ON st.code = stk.code \n" +
+          "WHERE \n" +
+          " st.reference = ? GROUP BY stk.descript", IQConn))
         {
           odbcCommandIQ.Parameters.AddWithValue("@inv", (object)this.txtJobNum.Text);
           IQConn.Open();
-          frmf.setData(odbcCommandIQ);
+          DataTable dt = new DataTable();
+          using (OdbcDataAdapter adapter = new OdbcDataAdapter(odbcCommandIQ))
+          {
+            adapter.Fill(dt);
+          }
+          dbJobItems.DataSource = dt;
+          //frmf.setData(odbcCommandIQ);
 
           OdbcDataReader reader = odbcCommandIQ.ExecuteReader();
           bool res = reader.Read();
           Type type;
-          while(res)
+          while (res)
           {
             Debug.WriteLine($"{reader.GetString(0)} | {reader.GetInt32(1)}");
             res = reader.Read();
@@ -335,19 +392,31 @@ namespace JT_Database_App
           Debug.WriteLine("");
         }
 
-        bool _btmp = frmf.TopMost;
-        frmf.TopMost = true;
+        //bool _btmp = frmf.TopMost;
+        //frmf.TopMost = true;
         // frmf.TopMost = _btmp;
         this.curStatus = new Validation().getCutStatus(this.txtJobNum.Text);
         this.sInv = this.txtJobNum.Text;
         this.txtCutter.Focus();
         this.txtJobNum.BackColor = Color.Green;
+        this.dbNotCut.ClearSelection();
+        bool didSelect = false;
+        foreach (DataGridViewRow row in this.dbNotCut.Rows)
+        {
+          if ((string)row.Cells["invsales"].Value == this.sInv)
+          {
+            didSelect = true;
+            row.Selected = true;
+            break;
+          }
+        }
+        if (!didSelect) this.dbNotCut.Rows[0].Selected = false;
       }
       else
       {
         this.curStatus = -1;
-        this.sInv = (string) null;
-        AutoClosingMessageBox.Show(string.Format("Invoice {0} is not in the table or isn't available for cutting!", (object) this.txtJobNum.Text), "Error", 3000);
+        this.sInv = (string)null;
+        AutoClosingMessageBox.Show(string.Format("Invoice {0} is not in the table or isn't available for cutting!", (object)this.txtJobNum.Text), "Error", 3000);
         this.txtJobNum.Text = "";
       }
     }
@@ -364,7 +433,7 @@ namespace JT_Database_App
       else
       {
         this.sRep = -1;
-        AutoClosingMessageBox.Show(string.Format("Cutter {0} is not in the table!", (object) this.txtCutter.Text), "Error", 3000);
+        AutoClosingMessageBox.Show(string.Format("Cutter {0} is not in the table!", (object)this.txtCutter.Text), "Error", 3000);
         this.txtCutter.Text = "";
       }
     }
@@ -381,7 +450,7 @@ namespace JT_Database_App
       else
       {
         this.sMachine = -1;
-        AutoClosingMessageBox.Show(string.Format("Machine {0} does not exist!", (object) this.txtMachine.Text), "Error", 3000);
+        AutoClosingMessageBox.Show(string.Format("Machine {0} does not exist!", (object)this.txtMachine.Text), "Error", 3000);
         this.txtMachine.Text = "";
       }
     }
@@ -400,7 +469,7 @@ namespace JT_Database_App
           }
           else
           {
-            AutoClosingMessageBox.Show(string.Format("Job {0}'s status is already {1}!", (object) this.txtJobNum.Text, (object) Validation.StatusName(_status)), "Error", 3000);
+            AutoClosingMessageBox.Show(string.Format("Job {0}'s status is already {1}!", (object)this.txtJobNum.Text, (object)Validation.StatusName(_status)), "Error", 3000);
             this.txtStatus.Text = "";
           }
         }
@@ -410,7 +479,7 @@ namespace JT_Database_App
       else
       {
         this.sStatus = -1;
-        AutoClosingMessageBox.Show(string.Format("Status {0} does not exist!", (object) this.txtStatus.Text), "Error", 3000);
+        AutoClosingMessageBox.Show(string.Format("Status {0} does not exist!", (object)this.txtStatus.Text), "Error", 3000);
         this.txtStatus.Text = "";
       }
     }
@@ -432,18 +501,18 @@ namespace JT_Database_App
             using (OleDbCommand oleDbCommand2 = new OleDbCommand("SELECT id FROM cutter ORDER BY id DESC", connection))
             {
               connection.Open();
-              int num = (int) oleDbCommand2.ExecuteScalar() + 1;
-              oleDbCommand1.Parameters.AddWithValue("@id", (object) num);
-              oleDbCommand1.Parameters.AddWithValue("@inv", (object) this.sInv);
-              oleDbCommand1.Parameters.AddWithValue("@cutter", (object) Validation.RepName(this.sRep));
-              oleDbCommand1.Parameters.AddWithValue("@date", (object) this.DTC(DateTime.Now));
-              oleDbCommand1.Parameters.AddWithValue("@time", (object) this.DTC(DateTime.Now));
-              oleDbCommand1.Parameters.AddWithValue("@status", (object) Validation.StatusName(this.sStatus));
+              int num = (int)oleDbCommand2.ExecuteScalar() + 1;
+              oleDbCommand1.Parameters.AddWithValue("@id", (object)num);
+              oleDbCommand1.Parameters.AddWithValue("@inv", (object)this.sInv);
+              oleDbCommand1.Parameters.AddWithValue("@cutter", (object)Validation.RepName(this.sRep));
+              oleDbCommand1.Parameters.AddWithValue("@date", (object)this.DTC(DateTime.Now));
+              oleDbCommand1.Parameters.AddWithValue("@time", (object)this.DTC(DateTime.Now));
+              oleDbCommand1.Parameters.AddWithValue("@status", (object)Validation.StatusName(this.sStatus));
               if (Validation.StatusName(this.sStatus).Equals("completed"))
-                oleDbCommand1.Parameters.AddWithValue("@end", (object) this.DTC(DateTime.Now));
+                oleDbCommand1.Parameters.AddWithValue("@end", (object)this.DTC(DateTime.Now));
               else
-                oleDbCommand1.Parameters.AddWithValue("@end", (object) DBNull.Value);
-              oleDbCommand1.Parameters.AddWithValue("@machine", (object) this.sMachine);
+                oleDbCommand1.Parameters.AddWithValue("@end", (object)DBNull.Value);
+              oleDbCommand1.Parameters.AddWithValue("@machine", (object)this.sMachine);
               oleDbCommand1.ExecuteNonQuery();
             }
           }
@@ -460,12 +529,12 @@ namespace JT_Database_App
         using (OleDbCommand oleDbCommand = new OleDbCommand(cmdText, connection))
         {
           connection.Open();
-          oleDbCommand.Parameters.AddWithValue("@status", (object) Validation.StatusName(this.sStatus));
+          oleDbCommand.Parameters.AddWithValue("@status", (object)Validation.StatusName(this.sStatus));
           if (Validation.StatusName(this.sStatus).Equals("completed"))
-            oleDbCommand.Parameters.AddWithValue("@fin", (object) this.DTC(DateTime.Now));
+            oleDbCommand.Parameters.AddWithValue("@fin", (object)this.DTC(DateTime.Now));
           else
-            oleDbCommand.Parameters.AddWithValue("@fin", (object) DBNull.Value);
-          oleDbCommand.Parameters.AddWithValue("@inv", (object) this.sInv);
+            oleDbCommand.Parameters.AddWithValue("@fin", (object)DBNull.Value);
+          oleDbCommand.Parameters.AddWithValue("@inv", (object)this.sInv);
           oleDbCommand.ExecuteNonQuery();
         }
       }
@@ -534,21 +603,25 @@ namespace JT_Database_App
       this.lblStatusName = new System.Windows.Forms.Label();
       this.tableLayoutPanel2 = new System.Windows.Forms.TableLayoutPanel();
       this.tableLayoutPanel3 = new System.Windows.Forms.TableLayoutPanel();
+      this.tableLayoutPanel4 = new System.Windows.Forms.TableLayoutPanel();
+      this.dbJobItems = new System.Windows.Forms.DataGridView();
       ((System.ComponentModel.ISupportInitialize)(this.dbRecentlyCut)).BeginInit();
       ((System.ComponentModel.ISupportInitialize)(this.dbNotCut)).BeginInit();
       this.tableLayoutPanel1.SuspendLayout();
       this.tableLayoutPanel2.SuspendLayout();
       this.tableLayoutPanel3.SuspendLayout();
+      this.tableLayoutPanel4.SuspendLayout();
+      ((System.ComponentModel.ISupportInitialize)(this.dbJobItems)).BeginInit();
       this.SuspendLayout();
       // 
       // menuStrip1
       // 
       this.menuStrip1.Form = null;
-      this.menuStrip1.GripMargin = new System.Windows.Forms.Padding(2, 2, 0, 2);
       this.menuStrip1.ImageScalingSize = new System.Drawing.Size(32, 32);
       this.menuStrip1.Location = new System.Drawing.Point(0, 0);
       this.menuStrip1.Name = "menuStrip1";
-      this.menuStrip1.Size = new System.Drawing.Size(1284, 48);
+      this.menuStrip1.Padding = new System.Windows.Forms.Padding(3, 1, 0, 1);
+      this.menuStrip1.Size = new System.Drawing.Size(642, 24);
       this.menuStrip1.TabIndex = 8;
       this.menuStrip1.Text = "menuStrip1";
       // 
@@ -576,13 +649,13 @@ namespace JT_Database_App
       this.dbRecentlyCut.DefaultCellStyle = dataGridViewCellStyle2;
       this.dbRecentlyCut.Dock = System.Windows.Forms.DockStyle.Fill;
       this.dbRecentlyCut.EditMode = System.Windows.Forms.DataGridViewEditMode.EditProgrammatically;
-      this.dbRecentlyCut.Location = new System.Drawing.Point(0, 441);
+      this.dbRecentlyCut.Location = new System.Drawing.Point(0, 229);
       this.dbRecentlyCut.Margin = new System.Windows.Forms.Padding(0);
       this.dbRecentlyCut.Name = "dbRecentlyCut";
       this.dbRecentlyCut.ReadOnly = true;
       this.dbRecentlyCut.RowHeadersWidth = 20;
       this.dbRecentlyCut.RowTemplate.Height = 35;
-      this.dbRecentlyCut.Size = new System.Drawing.Size(1284, 261);
+      this.dbRecentlyCut.Size = new System.Drawing.Size(642, 136);
       this.dbRecentlyCut.TabIndex = 0;
       // 
       // dbNotCut
@@ -609,14 +682,14 @@ namespace JT_Database_App
       this.dbNotCut.DefaultCellStyle = dataGridViewCellStyle4;
       this.dbNotCut.Dock = System.Windows.Forms.DockStyle.Fill;
       this.dbNotCut.EditMode = System.Windows.Forms.DataGridViewEditMode.EditProgrammatically;
-      this.dbNotCut.Location = new System.Drawing.Point(642, 0);
+      this.dbNotCut.Location = new System.Drawing.Point(0, 59);
       this.dbNotCut.Margin = new System.Windows.Forms.Padding(0);
       this.dbNotCut.Name = "dbNotCut";
       this.dbNotCut.ReadOnly = true;
       this.dbNotCut.RowHeadersWidth = 20;
       this.dbNotCut.RowTemplate.DefaultCellStyle.Font = new System.Drawing.Font("Microsoft Sans Serif", 15F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
       this.dbNotCut.RowTemplate.Height = 30;
-      this.dbNotCut.Size = new System.Drawing.Size(642, 391);
+      this.dbNotCut.Size = new System.Drawing.Size(315, 138);
       this.dbNotCut.TabIndex = 1;
       // 
       // tableLayoutPanel1
@@ -648,7 +721,7 @@ namespace JT_Database_App
       this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 20F));
       this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 20F));
       this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 20F));
-      this.tableLayoutPanel1.Size = new System.Drawing.Size(642, 391);
+      this.tableLayoutPanel1.Size = new System.Drawing.Size(321, 203);
       this.tableLayoutPanel1.TabIndex = 2;
       // 
       // lblJobNum
@@ -656,10 +729,10 @@ namespace JT_Database_App
       this.lblJobNum.AutoSize = true;
       this.lblJobNum.Dock = System.Windows.Forms.DockStyle.Fill;
       this.lblJobNum.Font = new System.Drawing.Font("Microsoft Sans Serif", 20F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-      this.lblJobNum.Location = new System.Drawing.Point(4, 0);
-      this.lblJobNum.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+      this.lblJobNum.Location = new System.Drawing.Point(2, 0);
+      this.lblJobNum.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
       this.lblJobNum.Name = "lblJobNum";
-      this.lblJobNum.Size = new System.Drawing.Size(205, 78);
+      this.lblJobNum.Size = new System.Drawing.Size(102, 40);
       this.lblJobNum.TabIndex = 0;
       this.lblJobNum.Text = "Job Num";
       this.lblJobNum.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -669,10 +742,10 @@ namespace JT_Database_App
       this.lblCutter.AutoSize = true;
       this.lblCutter.Dock = System.Windows.Forms.DockStyle.Fill;
       this.lblCutter.Font = new System.Drawing.Font("Microsoft Sans Serif", 20F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-      this.lblCutter.Location = new System.Drawing.Point(4, 78);
-      this.lblCutter.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+      this.lblCutter.Location = new System.Drawing.Point(2, 40);
+      this.lblCutter.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
       this.lblCutter.Name = "lblCutter";
-      this.lblCutter.Size = new System.Drawing.Size(205, 78);
+      this.lblCutter.Size = new System.Drawing.Size(102, 40);
       this.lblCutter.TabIndex = 2;
       this.lblCutter.Text = "Cutter";
       this.lblCutter.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -682,10 +755,10 @@ namespace JT_Database_App
       this.lblMachine.AutoSize = true;
       this.lblMachine.Dock = System.Windows.Forms.DockStyle.Fill;
       this.lblMachine.Font = new System.Drawing.Font("Microsoft Sans Serif", 20F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-      this.lblMachine.Location = new System.Drawing.Point(4, 156);
-      this.lblMachine.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+      this.lblMachine.Location = new System.Drawing.Point(2, 80);
+      this.lblMachine.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
       this.lblMachine.Name = "lblMachine";
-      this.lblMachine.Size = new System.Drawing.Size(205, 78);
+      this.lblMachine.Size = new System.Drawing.Size(102, 40);
       this.lblMachine.TabIndex = 1;
       this.lblMachine.Text = "Machine";
       this.lblMachine.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -695,10 +768,10 @@ namespace JT_Database_App
       this.lblStatus.AutoSize = true;
       this.lblStatus.Dock = System.Windows.Forms.DockStyle.Fill;
       this.lblStatus.Font = new System.Drawing.Font("Microsoft Sans Serif", 20F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-      this.lblStatus.Location = new System.Drawing.Point(4, 234);
-      this.lblStatus.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+      this.lblStatus.Location = new System.Drawing.Point(2, 120);
+      this.lblStatus.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
       this.lblStatus.Name = "lblStatus";
-      this.lblStatus.Size = new System.Drawing.Size(205, 78);
+      this.lblStatus.Size = new System.Drawing.Size(102, 40);
       this.lblStatus.TabIndex = 15;
       this.lblStatus.Text = "Status";
       this.lblStatus.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -708,10 +781,10 @@ namespace JT_Database_App
       this.lblTime.AutoSize = true;
       this.lblTime.Dock = System.Windows.Forms.DockStyle.Fill;
       this.lblTime.Font = new System.Drawing.Font("Microsoft Sans Serif", 20F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-      this.lblTime.Location = new System.Drawing.Point(4, 312);
-      this.lblTime.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+      this.lblTime.Location = new System.Drawing.Point(2, 160);
+      this.lblTime.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
       this.lblTime.Name = "lblTime";
-      this.lblTime.Size = new System.Drawing.Size(205, 79);
+      this.lblTime.Size = new System.Drawing.Size(102, 43);
       this.lblTime.TabIndex = 4;
       this.lblTime.Text = "Time";
       this.lblTime.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -721,10 +794,10 @@ namespace JT_Database_App
       this.txtJobNum.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
       this.txtJobNum.BackColor = System.Drawing.SystemColors.Window;
       this.txtJobNum.Font = new System.Drawing.Font("Microsoft Sans Serif", 20F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-      this.txtJobNum.Location = new System.Drawing.Point(217, 5);
-      this.txtJobNum.Margin = new System.Windows.Forms.Padding(4);
+      this.txtJobNum.Location = new System.Drawing.Point(108, 2);
+      this.txtJobNum.Margin = new System.Windows.Forms.Padding(2);
       this.txtJobNum.Name = "txtJobNum";
-      this.txtJobNum.Size = new System.Drawing.Size(206, 68);
+      this.txtJobNum.Size = new System.Drawing.Size(103, 38);
       this.txtJobNum.TabIndex = 5;
       this.txtJobNum.KeyUp += new System.Windows.Forms.KeyEventHandler(this.input_KeyUp);
       // 
@@ -732,10 +805,10 @@ namespace JT_Database_App
       // 
       this.txtCutter.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
       this.txtCutter.Font = new System.Drawing.Font("Microsoft Sans Serif", 20F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-      this.txtCutter.Location = new System.Drawing.Point(217, 83);
-      this.txtCutter.Margin = new System.Windows.Forms.Padding(4);
+      this.txtCutter.Location = new System.Drawing.Point(108, 42);
+      this.txtCutter.Margin = new System.Windows.Forms.Padding(2);
       this.txtCutter.Name = "txtCutter";
-      this.txtCutter.Size = new System.Drawing.Size(206, 68);
+      this.txtCutter.Size = new System.Drawing.Size(103, 38);
       this.txtCutter.TabIndex = 6;
       this.txtCutter.KeyUp += new System.Windows.Forms.KeyEventHandler(this.input_KeyUp);
       // 
@@ -743,10 +816,10 @@ namespace JT_Database_App
       // 
       this.txtMachine.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
       this.txtMachine.Font = new System.Drawing.Font("Microsoft Sans Serif", 20F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-      this.txtMachine.Location = new System.Drawing.Point(217, 161);
-      this.txtMachine.Margin = new System.Windows.Forms.Padding(4);
+      this.txtMachine.Location = new System.Drawing.Point(108, 82);
+      this.txtMachine.Margin = new System.Windows.Forms.Padding(2);
       this.txtMachine.Name = "txtMachine";
-      this.txtMachine.Size = new System.Drawing.Size(206, 68);
+      this.txtMachine.Size = new System.Drawing.Size(103, 38);
       this.txtMachine.TabIndex = 7;
       this.txtMachine.KeyUp += new System.Windows.Forms.KeyEventHandler(this.input_KeyUp);
       // 
@@ -754,10 +827,10 @@ namespace JT_Database_App
       // 
       this.txtStatus.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
       this.txtStatus.Font = new System.Drawing.Font("Microsoft Sans Serif", 20F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-      this.txtStatus.Location = new System.Drawing.Point(217, 239);
-      this.txtStatus.Margin = new System.Windows.Forms.Padding(4);
+      this.txtStatus.Location = new System.Drawing.Point(108, 122);
+      this.txtStatus.Margin = new System.Windows.Forms.Padding(2);
       this.txtStatus.Name = "txtStatus";
-      this.txtStatus.Size = new System.Drawing.Size(206, 68);
+      this.txtStatus.Size = new System.Drawing.Size(103, 38);
       this.txtStatus.TabIndex = 16;
       this.txtStatus.KeyUp += new System.Windows.Forms.KeyEventHandler(this.input_KeyUp);
       // 
@@ -768,10 +841,10 @@ namespace JT_Database_App
       this.tableLayoutPanel1.SetColumnSpan(this.txtTime, 2);
       this.txtTime.Enabled = false;
       this.txtTime.Font = new System.Drawing.Font("Microsoft Sans Serif", 20F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-      this.txtTime.Location = new System.Drawing.Point(217, 321);
-      this.txtTime.Margin = new System.Windows.Forms.Padding(4);
+      this.txtTime.Location = new System.Drawing.Point(108, 166);
+      this.txtTime.Margin = new System.Windows.Forms.Padding(2);
       this.txtTime.Name = "txtTime";
-      this.txtTime.Size = new System.Drawing.Size(421, 61);
+      this.txtTime.Size = new System.Drawing.Size(211, 31);
       this.txtTime.TabIndex = 14;
       // 
       // lblCutterName
@@ -779,10 +852,10 @@ namespace JT_Database_App
       this.lblCutterName.Anchor = System.Windows.Forms.AnchorStyles.None;
       this.lblCutterName.AutoSize = true;
       this.lblCutterName.Font = new System.Drawing.Font("Microsoft Sans Serif", 15F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-      this.lblCutterName.Location = new System.Drawing.Point(491, 94);
-      this.lblCutterName.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+      this.lblCutterName.Location = new System.Drawing.Point(244, 47);
+      this.lblCutterName.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
       this.lblCutterName.Name = "lblCutterName";
-      this.lblCutterName.Size = new System.Drawing.Size(87, 46);
+      this.lblCutterName.Size = new System.Drawing.Size(46, 25);
       this.lblCutterName.TabIndex = 12;
       this.lblCutterName.Text = "N/A";
       // 
@@ -791,10 +864,10 @@ namespace JT_Database_App
       this.lblMachineName.Anchor = System.Windows.Forms.AnchorStyles.None;
       this.lblMachineName.AutoSize = true;
       this.lblMachineName.Font = new System.Drawing.Font("Microsoft Sans Serif", 15F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-      this.lblMachineName.Location = new System.Drawing.Point(491, 172);
-      this.lblMachineName.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+      this.lblMachineName.Location = new System.Drawing.Point(244, 87);
+      this.lblMachineName.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
       this.lblMachineName.Name = "lblMachineName";
-      this.lblMachineName.Size = new System.Drawing.Size(87, 46);
+      this.lblMachineName.Size = new System.Drawing.Size(46, 25);
       this.lblMachineName.TabIndex = 13;
       this.lblMachineName.Text = "N/A";
       // 
@@ -803,10 +876,10 @@ namespace JT_Database_App
       this.lblStatusName.Anchor = System.Windows.Forms.AnchorStyles.None;
       this.lblStatusName.AutoSize = true;
       this.lblStatusName.Font = new System.Drawing.Font("Microsoft Sans Serif", 15F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-      this.lblStatusName.Location = new System.Drawing.Point(491, 250);
-      this.lblStatusName.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+      this.lblStatusName.Location = new System.Drawing.Point(244, 127);
+      this.lblStatusName.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
       this.lblStatusName.Name = "lblStatusName";
-      this.lblStatusName.Size = new System.Drawing.Size(87, 46);
+      this.lblStatusName.Size = new System.Drawing.Size(46, 25);
       this.lblStatusName.TabIndex = 17;
       this.lblStatusName.Text = "N/A";
       // 
@@ -822,11 +895,11 @@ namespace JT_Database_App
       this.tableLayoutPanel2.Margin = new System.Windows.Forms.Padding(0);
       this.tableLayoutPanel2.Name = "tableLayoutPanel2";
       this.tableLayoutPanel2.RowCount = 3;
-      this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 50F));
+      this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 26F));
       this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 60F));
       this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 40F));
-      this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 19F));
-      this.tableLayoutPanel2.Size = new System.Drawing.Size(1284, 702);
+      this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 10F));
+      this.tableLayoutPanel2.Size = new System.Drawing.Size(642, 365);
       this.tableLayoutPanel2.TabIndex = 3;
       // 
       // tableLayoutPanel3
@@ -835,25 +908,50 @@ namespace JT_Database_App
       this.tableLayoutPanel3.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
       this.tableLayoutPanel3.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
       this.tableLayoutPanel3.Controls.Add(this.tableLayoutPanel1, 0, 0);
-      this.tableLayoutPanel3.Controls.Add(this.dbNotCut, 1, 0);
+      this.tableLayoutPanel3.Controls.Add(this.tableLayoutPanel4, 1, 0);
       this.tableLayoutPanel3.Dock = System.Windows.Forms.DockStyle.Fill;
-      this.tableLayoutPanel3.Location = new System.Drawing.Point(0, 50);
+      this.tableLayoutPanel3.Location = new System.Drawing.Point(0, 26);
       this.tableLayoutPanel3.Margin = new System.Windows.Forms.Padding(0);
       this.tableLayoutPanel3.Name = "tableLayoutPanel3";
       this.tableLayoutPanel3.RowCount = 1;
-      this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
-      this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
-      this.tableLayoutPanel3.Size = new System.Drawing.Size(1284, 391);
+      this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
+      this.tableLayoutPanel3.Size = new System.Drawing.Size(642, 203);
       this.tableLayoutPanel3.TabIndex = 0;
+      // 
+      // tableLayoutPanel4
+      // 
+      this.tableLayoutPanel4.ColumnCount = 1;
+      this.tableLayoutPanel4.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+      this.tableLayoutPanel4.Controls.Add(this.dbJobItems, 0, 0);
+      this.tableLayoutPanel4.Controls.Add(this.dbNotCut, 0, 1);
+      this.tableLayoutPanel4.Dock = System.Windows.Forms.DockStyle.Fill;
+      this.tableLayoutPanel4.Location = new System.Drawing.Point(324, 3);
+      this.tableLayoutPanel4.Name = "tableLayoutPanel4";
+      this.tableLayoutPanel4.RowCount = 2;
+      this.tableLayoutPanel4.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 30F));
+      this.tableLayoutPanel4.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 70F));
+      this.tableLayoutPanel4.Size = new System.Drawing.Size(315, 197);
+      this.tableLayoutPanel4.TabIndex = 3;
+      // 
+      // dbJobItems
+      // 
+      this.dbJobItems.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+      this.dbJobItems.Dock = System.Windows.Forms.DockStyle.Fill;
+      this.dbJobItems.Location = new System.Drawing.Point(0, 0);
+      this.dbJobItems.Margin = new System.Windows.Forms.Padding(0);
+      this.dbJobItems.Name = "dbJobItems";
+      this.dbJobItems.Size = new System.Drawing.Size(315, 59);
+      this.dbJobItems.TabIndex = 0;
+      this.dbJobItems.CellContentClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.dbJobItems_CellContentClick);
       // 
       // frmCutter
       // 
-      this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 25F);
+      this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
       this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-      this.ClientSize = new System.Drawing.Size(1284, 702);
+      this.ClientSize = new System.Drawing.Size(642, 365);
       this.Controls.Add(this.tableLayoutPanel2);
       this.MainMenuStrip = this.menuStrip1;
-      this.Margin = new System.Windows.Forms.Padding(4);
+      this.Margin = new System.Windows.Forms.Padding(2);
       this.Name = "frmCutter";
       this.Text = "Cutter";
       this.WindowState = System.Windows.Forms.FormWindowState.Maximized;
@@ -865,7 +963,14 @@ namespace JT_Database_App
       this.tableLayoutPanel2.ResumeLayout(false);
       this.tableLayoutPanel2.PerformLayout();
       this.tableLayoutPanel3.ResumeLayout(false);
+      this.tableLayoutPanel4.ResumeLayout(false);
+      ((System.ComponentModel.ISupportInitialize)(this.dbJobItems)).EndInit();
       this.ResumeLayout(false);
+
+    }
+
+    private void dbJobItems_CellContentClick(object sender, DataGridViewCellEventArgs e)
+    {
 
     }
   }
