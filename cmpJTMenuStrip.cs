@@ -15,7 +15,6 @@ namespace JT_Database_App
     private ToolStripMenuItem manualInputToolStripMenuItem;
     private ToolStripMenuItem exitToolStripMenuItem;
     private ToolStripMenuItem connectToJtJobsBofficeToolStripMenuItem;
-    private ToolStripMenuItem connectToIQToolStripMenuItem;
     private Form form;
 
     public Form Form { get => form; set => form = value; }
@@ -28,7 +27,6 @@ namespace JT_Database_App
       this.exitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
       this.databaseToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
       this.connectToJtJobsBofficeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-      this.connectToIQToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
     }
 
     public cmpJTMenuStrip(Form form) : base()
@@ -71,8 +69,6 @@ namespace JT_Database_App
     private void exitToolStripMenuItem_Click(object sender, EventArgs e) => this.Form.Close();
 
     private void connectToJtJobsBofficeToolStripMenuItem_Click(object sender, EventArgs e) => PublicMethods.SetBoPath();
-
-    private void connectToIQToolStripMenuItem_Click(object sender, EventArgs e) => PublicMethods.SetIQPath();
 
     public void InitializeComponents()
     {
@@ -126,7 +122,6 @@ namespace JT_Database_App
       // 
       this.databaseToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.connectToJtJobsBofficeToolStripMenuItem,
-            this.connectToIQToolStripMenuItem
       });
       this.databaseToolStripMenuItem.Name = "databaseToolStripMenuItem";
       this.databaseToolStripMenuItem.Size = new System.Drawing.Size(132, 44);
@@ -138,13 +133,6 @@ namespace JT_Database_App
       this.connectToJtJobsBofficeToolStripMenuItem.Size = new System.Drawing.Size(410, 44);
       this.connectToJtJobsBofficeToolStripMenuItem.Text = "Connect to JtJobsBoffice";
       this.connectToJtJobsBofficeToolStripMenuItem.Click += new System.EventHandler(this.connectToJtJobsBofficeToolStripMenuItem_Click);
-      // 
-      // connectToIQToolStripMenuItem
-      // 
-      this.connectToIQToolStripMenuItem.Name = "connectToIQToolStripMenuItem";
-      this.connectToIQToolStripMenuItem.Size = new System.Drawing.Size(410, 44);
-      this.connectToIQToolStripMenuItem.Text = "Connect to IQ Database";
-      this.connectToIQToolStripMenuItem.Click += new System.EventHandler(this.connectToIQToolStripMenuItem_Click);
     }
   }
 }

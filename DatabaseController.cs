@@ -14,16 +14,12 @@ namespace JT_Database_App
 {
   internal class DatabaseController
   {
-    private string connStrAcc, connStrIQ;
+    private string connStrAcc;
     public DatabaseController()
     {
       this.connStrAcc = "" +
         "Provider=Microsoft.ACE.OLEDB.12.0;" +
         "Data Source=" + Settings.Default.BOPath;
-      this.connStrIQ = "" +
-                "DRIVER={DBISAM 4 ODBC Driver};" +
-                "ConnectionType=Local;" +
-                "CatalogName=" + Settings.Default.IQPath;
     }
 
     public DataTable QueryAccess(OleDbCommand command)
@@ -38,11 +34,6 @@ namespace JT_Database_App
         command.Connection = conn;
         return command.ExecuteNonQuery();
       }
-    }
-
-    public DataTable QueryIQ(OleDbCommand command)
-    {
-      return QueryDatabase(command, connStrIQ);
     }
 
     private DataTable QueryDatabase(OleDbCommand command, string connectionString)

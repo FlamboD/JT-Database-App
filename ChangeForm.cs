@@ -12,14 +12,6 @@ namespace JT_Database_App
 {
   internal class ChangeForm
   {
-    public static bool Cashier(Form current) 
-    {
-      if (!(bool)Settings.Default["frmCashier"])
-        return false;
-      ChangeForm.OpenForm(current, (Form) new frmCashier());
-      return true;
-    }
-
     public static bool Sales(Form current) => (bool) Settings.Default["frmSales"];
 
     public static bool Placed(Form current)
@@ -27,30 +19,6 @@ namespace JT_Database_App
       if (!(bool) Settings.Default["frmPlaced"])
         return false;
       ChangeForm.OpenForm(current, (Form) new frmPlaced());
-      return true;
-    }
-
-    public static bool Cutter(Form current)
-    {
-      if (!(bool) Settings.Default["frmCutter"])
-        return false;
-      ChangeForm.OpenForm(current, (Form) new frmCutter());
-      return true;
-    }
-
-    public static bool Edger(Form current)
-    {
-      if (!(bool) Settings.Default["frmEdger"])
-        return false;
-      ChangeForm.OpenForm(current, (Form) new frmEdger());
-      return true;
-    }
-
-    public static bool Driller(Form current)
-    {
-      if (!(bool) Settings.Default["frmDriller"])
-        return false;
-      ChangeForm.OpenForm(current, (Form) new frmDriller());
       return true;
     }
 
@@ -84,18 +52,10 @@ namespace JT_Database_App
     {
       switch (frmName)
       {
-        case "frmCashier":
-          return ChangeForm.Cashier(current);
         case "frmChecker":
           return ChangeForm.Checker(current);
         case "frmCollected":
           return ChangeForm.Collected(current);
-        case "frmCutter":
-          return ChangeForm.Cutter(current);
-        case "frmDriller":
-          return ChangeForm.Driller(current);
-        case "frmEdger":
-          return ChangeForm.Edger(current);
         case "frmFiled":
           return ChangeForm.Filed(current);
         case "frmPlaced":

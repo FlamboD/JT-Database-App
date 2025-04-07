@@ -172,9 +172,6 @@
     <Compile Include="Forms\frmCheckAdmin.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Forms\frmCashier.cs">
-      <SubType>Form</SubType>
-    </Compile>
     <Compile Include="Forms\frmEditMenu.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -183,18 +180,6 @@
     </Compile>
     <Compile Include="Forms\frmChecker.cs">
       <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Forms\frmDriller.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Forms\frmEdger.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Forms\frmSales.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Forms\frmSales.Designer.cs">
-      <DependentUpon>frmSales.cs</DependentUpon>
     </Compile>
     <Compile Include="Models\Checker.cs" />
     <Compile Include="Models\Customer.cs" />
@@ -207,9 +192,6 @@
     <Compile Include="Models\SalesCounter.cs" />
     <Compile Include="Models\UpdatableDataType.cs" />
     <Compile Include="PublicMethods.cs" />
-    <Compile Include="Forms\frmCutter.cs">
-      <SubType>Form</SubType>
-    </Compile>
     <Compile Include="Forms\frmPlaced.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -233,21 +215,12 @@
     <EmbeddedResource Include="Forms\FloatingForm.resx">
       <DependentUpon>FloatingForm.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Forms\frmCashier.resx">
-      <DependentUpon>frmCashier.cs</DependentUpon>
-    </EmbeddedResource>
     <EmbeddedResource Include="Forms\frmCheckAdmin.resx" />
     <EmbeddedResource Include="Forms\frmChecker.resx" />
-    <EmbeddedResource Include="Forms\frmCutter.resx" />
-    <EmbeddedResource Include="Forms\frmDriller.resx" />
-    <EmbeddedResource Include="Forms\frmEdger.resx" />
     <EmbeddedResource Include="Forms\frmEditMenu.resx" />
     <EmbeddedResource Include="Forms\frmFiler.resx" />
     <EmbeddedResource Include="Forms\frmMenu.resx" />
     <EmbeddedResource Include="Forms\frmPlaced.resx" />
-    <EmbeddedResource Include="Forms\frmSales.resx">
-      <DependentUpon>frmSales.cs</DependentUpon>
-    </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx" />
     <EmbeddedResource Include="Forms\TestViewer.resx" />
   </ItemGroup>

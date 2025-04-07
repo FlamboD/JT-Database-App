@@ -6,6 +6,7 @@
 
 using JT_Database_App.Properties;
 using System.Diagnostics;
+using System.IO;
 using System.Windows.Forms;
 
 namespace JT_Database_App
@@ -16,25 +17,15 @@ namespace JT_Database_App
     {
       get => "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" + Settings.Default.BOPath;
     }
-    public static string IQConnectionString
-    {
-      get => "DRIVER={DBISAM 4 ODBC Driver};ConnectionType=Local;CatalogName=" + Settings.Default.IQPath;
-    }
     public static void SetBoPath()
     {
       OpenFileDialog openFileDialog = new OpenFileDialog();
       openFileDialog.Filter = "Access DB(*.mdb; *.accdb)|*.mdb; *.accdb";
+      if(Settings.Default.BOPath != null)
+        openFileDialog.InitialDirectory = Path.GetDirectoryName(Settings.Default.BOPath);
       if (openFileDialog.ShowDialog() != DialogResult.OK)
         return;
       Settings.Default.BOPath = openFileDialog.FileName;
-      Settings.Default.Save();
-    }
-    public static void SetIQPath()
-    {
-      FolderBrowserDialog folderBrowserDialog = new FolderBrowserDialog();
-      if (folderBrowserDialog.ShowDialog() != DialogResult.OK)
-        return;
-      Settings.Default.IQPath = folderBrowserDialog.SelectedPath;
       Settings.Default.Save();
     }
 

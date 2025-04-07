@@ -55,32 +55,5 @@ namespace JT_Database_App.Forms
         }
       }
     }
-    protected async Task<DataTable> QueryIQ(string cmd)
-    {
-      DataTable dataTable = new DataTable();
-      using (OdbcConnection conn = new OdbcConnection(this.connectionStr))
-      {
-        await conn.OpenAsync();
-        using (OdbcDataAdapter adapter = new OdbcDataAdapter(cmd, conn))
-        {
-          adapter.Fill(dataTable);
-          return dataTable;
-        }
-      }
-    }
-    protected async Task<DataTable> QueryIQ(OdbcCommand cmd)
-    {
-      DataTable dataTable = new DataTable();
-      using (OdbcConnection conn = new OdbcConnection(PublicMethods.IQConnectionString))
-      {
-        cmd.Connection = conn;
-        await conn.OpenAsync();
-        using (OdbcDataAdapter adapter = new OdbcDataAdapter(cmd))
-        {
-          adapter.Fill(dataTable);
-          return dataTable;
-        }
-      }
-    }
   }
 }

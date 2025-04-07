@@ -23,22 +23,10 @@ namespace JT_Database_App
       //return;
       switch (Settings.Default.DefaultForm)
       {
-        case "frmCashier":
-          Application.Run((Form)new frmCashier());
-          break;
         case "frmChecker":
           Application.Run((Form) new frmChecker());
           break;
         case "frmCollected":
-          break;
-        case "frmCutter":
-          Application.Run((Form) new frmCutter());
-          break;
-        case "frmDriller":
-          Application.Run((Form) new frmDriller());
-          break;
-        case "frmEdger":
-          Application.Run((Form) new frmEdger());
           break;
         case "frmFiled":
           Application.Run((Form) new frmFiler());

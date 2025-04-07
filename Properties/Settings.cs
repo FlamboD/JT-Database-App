@@ -38,15 +38,6 @@ namespace JT_Database_App.Properties
     [UserScopedSetting]
     [DebuggerNonUserCode]
     [DefaultSettingValue("")]
-    public string IQPath
-    {
-      get => (string)this[nameof(IQPath)];
-      set => this[nameof(IQPath)] = (object)value;
-    }
-
-    [UserScopedSetting]
-    [DebuggerNonUserCode]
-    [DefaultSettingValue("")]
     public string DefaultForm
     {
       get => (string) this[nameof (DefaultForm)];

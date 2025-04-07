@@ -22,6 +22,7 @@ namespace JT_Database_App
     //public Validation() => Validation.BOConnectionStr = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" + Settings.Default.BOPath;
 
     private static string select(string _where = "") => "SELECT * FROM \n(((((sales_counter AS sc \nLEFT JOIN cutter AS c ON sc.invsales = c.invcutter)\nLEFT JOIN drilling AS d ON sc.invsales = d.[inv drill])\nLEFT JOIN edger AS e ON sc.invsales = e.[inv edger])\nLEFT JOIN filed AS f ON sc.invsales = f.inv_filled)\nLEFT JOIN checker AS chk ON sc.invsales = chk.[inv checker])\nLEFT JOIN placed AS p ON sc.invsales = p.invQ_LU\n" + _where;
+    private static string selectCount(string _where = "") => "SELECT COUNT(*) FROM \n(((((sales_counter AS sc \nLEFT JOIN cutter AS c ON sc.invsales = c.invcutter)\nLEFT JOIN drilling AS d ON sc.invsales = d.[inv drill])\nLEFT JOIN edger AS e ON sc.invsales = e.[inv edger])\nLEFT JOIN filed AS f ON sc.invsales = f.inv_filled)\nLEFT JOIN checker AS chk ON sc.invsales = chk.[inv checker])\nLEFT JOIN placed AS p ON sc.invsales = p.invQ_LU\n" + _where;
 
     public Dictionary<string, int> getHours()
     {
@@ -162,54 +163,6 @@ namespace JT_Database_App
       }
     }
 
-    public bool invCashier(string _invNumber)
-    {
-      using (OleDbConnection BOConnection = new OleDbConnection(Validation.BOConnectionStr))
-      using (OdbcConnection IQConnection = new OdbcConnection(PublicMethods.IQConnectionString))
-      using (OleDbCommand oleDbCommandBO = new OleDbCommand("SELECT COUNT(*) FROM sales_counter WHERE invsales = @inv", BOConnection))
-      using (OdbcCommand odbcCommandIQ = new OdbcCommand("SELECT COUNT(*) FROM INVOICES WHERE document = ?", IQConnection))
-      {
-        BOConnection.Open();
-        IQConnection.Open();
-        oleDbCommandBO.Parameters.AddWithValue("@inv", (object)_invNumber);
-        odbcCommandIQ.Parameters.AddWithValue("@inv", (object)_invNumber);
-        return (
-          (int.Parse(oleDbCommandBO.ExecuteScalar().ToString()) == 0) &&
-          (int.Parse(odbcCommandIQ.ExecuteScalar().ToString()) != 0)
-        );
-      }
-    }
-
-    public string getCustomerName(string _inv)
-    {
-      using (OdbcConnection IQConnection = new OdbcConnection(PublicMethods.IQConnectionString))
-      using (OdbcCommand odbcCommandIQ = new OdbcCommand("SELECT name FROM INVOICES WHERE document = ?", IQConnection))
-      {
-        IQConnection.Open();
-        odbcCommandIQ.Parameters.AddWithValue("@inv", _inv);
-        object _ = odbcCommandIQ.ExecuteScalar();
-        if (_ is string)
-          return (string)_;
-        else
-          return (string)null;
-      }
-    }
-
-    public string getCustomerCell(string _inv)
-    {
-      using (OdbcConnection IQConnection = new OdbcConnection(PublicMethods.IQConnectionString))
-      using (OdbcCommand odbcCommandIQ = new OdbcCommand("SELECT phone FROM INVOICES WHERE document = ?", IQConnection))
-      {
-        IQConnection.Open();
-        odbcCommandIQ.Parameters.AddWithValue("@inv", _inv);
-        object _ = odbcCommandIQ.ExecuteScalar();
-        if (_ is string)
-          return (string)_;
-        else
-          return (string)null;
-      }
-    }
-
     public bool invPlaced(string _invNumber)
     {
       string _where = "WHERE\n" +
@@ -240,8 +193,18 @@ namespace JT_Database_App
       string _where = "WHERE\n" +
         "   sc.invsales = @inv AND\n" +
         "   (\n" +
-        "       p.[peg date] + 1 < NOW() OR\n" +
-        "       (SELECT COUNT(*) FROM placed AS psq WHERE psq.[peg date] + 1 > NOW()) = 0\n" +
+        "       sc.[Sales Date] + 1 < NOW() OR\n" +
+        " (" + 
+        Validation.selectCount("WHERE\n" +
+          "   sc.invsales = @inv AND\n" +
+          "   (\n" +
+          "       sc.[Customer Name] Is Not Null AND\n" +
+          "       p.InvQ_LU Is Null AND\n" +
+          "       sc.Cancelled = NO AND\n" +
+          "       sc.rep <> 18 AND\n" +
+          "        sc.[Sales Date] + 1 > NOW()\n" +
+          "   )"
+        ) + " = 0) \n" +
         "   );";
       using (OleDbConnection connection = new OleDbConnection(Validation.BOConnectionStr))
       {
