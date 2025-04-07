@@ -35,6 +35,11 @@ namespace JT_Database_App
     private TextBox txtTime;
     private Task refreshTask = Task.Run(() => { });
 
+    private DelayIncreaser delay = new DelayIncreaser(5, 0, TimeSpan.FromMinutes(60));
+
+    private delegate void BlankDelegate();
+    bool closed = false;
+
     public frmPlaced()
     {
       this.connectionStr = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" + Settings.Default.BOPath;
@@ -43,6 +48,8 @@ namespace JT_Database_App
 
       this.menuStrip1.Form = this;
       this.menuStrip1.InitializeComponents();
+
+      //this.FormClosed += (FormClosedEventHandler)((s, args) => Application.Exit());
     }
 
     private void Form1_Load(object sender, EventArgs e)
@@ -127,11 +134,10 @@ namespace JT_Database_App
       catch (Exception ex)// when (ex is OleDbException || ex is InvalidOperationException)
       {
         Debug.WriteLine(ex.Message);
-        frmMenu frmMenu = new frmMenu();
-        PublicMethods.SetDefaultForm((Form)frmMenu);
-        frmMenu.FormClosed += (FormClosedEventHandler)((s, args) => this.Close());
-        frmMenu.Show();
-        this.Hide();
+        ChangeForm.Menu(this);
+        //frmMenu frmMenu = new frmMenu();
+        //(new frmMenu()).Show();
+        //this.Close();
         return;
       }
 

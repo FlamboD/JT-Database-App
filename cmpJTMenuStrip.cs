@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -91,12 +92,13 @@ namespace JT_Database_App
       // menuToolStripMenuItem
       // 
       this.menuToolStripMenuItem.Name = "menuToolStripMenuItem";
-      if(this.Form is frmMenu)
+      if (this.Form is frmMenu)
       {
         this.menuToolStripMenuItem.Size = new System.Drawing.Size(257, 44);
         this.menuToolStripMenuItem.Text = "Edit Menu";
         this.menuToolStripMenuItem.Click += new System.EventHandler(this.editMenuToolStripMenuItem_Click);
-      } else
+      }
+      else
       {
         this.menuToolStripMenuItem.Size = new System.Drawing.Size(210, 44);
         this.menuToolStripMenuItem.Text = "Menu";

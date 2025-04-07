@@ -21,8 +21,12 @@ namespace JT_Database_App
     {
       OpenFileDialog openFileDialog = new OpenFileDialog();
       openFileDialog.Filter = "Access DB(*.mdb; *.accdb)|*.mdb; *.accdb";
-      if(Settings.Default.BOPath != null)
-        openFileDialog.InitialDirectory = Path.GetDirectoryName(Settings.Default.BOPath);
+
+      try {
+        if(Settings.Default.BOPath != null)
+          openFileDialog.InitialDirectory = Path.GetDirectoryName(Settings.Default.BOPath);
+      } catch { };
+
       if (openFileDialog.ShowDialog() != DialogResult.OK)
         return;
       Settings.Default.BOPath = openFileDialog.FileName;

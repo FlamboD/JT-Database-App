@@ -47,19 +47,10 @@ namespace JT_Database_App.Properties
     [UserScopedSetting]
     [DebuggerNonUserCode]
     [DefaultSettingValue("True")]
-    public bool frmCashier
+    public bool frmMenu
     {
-      get => (bool) this[nameof (frmCashier)];
-      set => this[nameof (frmCashier)] = (object) value;
-    }
-
-    [UserScopedSetting]
-    [DebuggerNonUserCode]
-    [DefaultSettingValue("False")]
-    public bool frmSales
-    {
-      get => (bool) this[nameof (frmSales)];
-      set => this[nameof (frmSales)] = (object) value;
+      get => (bool) this[nameof (frmMenu)];
+      set => this[nameof (frmMenu)] = (object) value;
     }
 
     [UserScopedSetting]
@@ -74,46 +65,10 @@ namespace JT_Database_App.Properties
     [UserScopedSetting]
     [DebuggerNonUserCode]
     [DefaultSettingValue("True")]
-    public bool frmCutter
-    {
-      get => (bool) this[nameof (frmCutter)];
-      set => this[nameof (frmCutter)] = (object) value;
-    }
-
-    [UserScopedSetting]
-    [DebuggerNonUserCode]
-    [DefaultSettingValue("True")]
-    public bool frmEdger
-    {
-      get => (bool) this[nameof (frmEdger)];
-      set => this[nameof (frmEdger)] = (object) value;
-    }
-
-    [UserScopedSetting]
-    [DebuggerNonUserCode]
-    [DefaultSettingValue("True")]
-    public bool frmDriller
-    {
-      get => (bool) this[nameof (frmDriller)];
-      set => this[nameof (frmDriller)] = (object) value;
-    }
-
-    [UserScopedSetting]
-    [DebuggerNonUserCode]
-    [DefaultSettingValue("True")]
     public bool frmChecker
     {
       get => (bool) this[nameof (frmChecker)];
       set => this[nameof (frmChecker)] = (object) value;
-    }
-
-    [UserScopedSetting]
-    [DebuggerNonUserCode]
-    [DefaultSettingValue("False")]
-    public bool frmCollected
-    {
-      get => (bool) this[nameof (frmCollected)];
-      set => this[nameof (frmCollected)] = (object) value;
     }
 
     [UserScopedSetting]

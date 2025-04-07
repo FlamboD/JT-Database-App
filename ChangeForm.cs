@@ -12,8 +12,13 @@ namespace JT_Database_App
 {
   internal class ChangeForm
   {
-    public static bool Sales(Form current) => (bool) Settings.Default["frmSales"];
-
+    public static bool Menu(Form current)
+    {
+      if (!(bool)Settings.Default["frmMenu"])
+        return false;
+      ChangeForm.OpenForm(current, (Form)new frmMenu());
+      return true;
+    }
     public static bool Placed(Form current)
     {
       if (!(bool) Settings.Default["frmPlaced"])
@@ -29,8 +34,6 @@ namespace JT_Database_App
       ChangeForm.OpenForm(current, (Form) new frmChecker());
       return true;
     }
-
-    public static bool Collected(Form current) => (bool) Settings.Default["frmCollected"];
 
     public static bool Filed(Form current)
     {
@@ -54,14 +57,10 @@ namespace JT_Database_App
       {
         case "frmChecker":
           return ChangeForm.Checker(current);
-        case "frmCollected":
-          return ChangeForm.Collected(current);
         case "frmFiled":
           return ChangeForm.Filed(current);
         case "frmPlaced":
           return ChangeForm.Placed(current);
-        case "frmSales":
-          return ChangeForm.Sales(current);
         default:
           return false;
       }

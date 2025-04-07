@@ -19,12 +19,18 @@ namespace JT_Database_App
     private Button btnPlaced;
     private Button btnChecker;
     private Button btnFiled;
+    private TableLayoutPanel tableLayoutPanel2;
     private TableLayoutPanel tableLayoutPanel1;
 
     public frmMenu()
     {
       this.InitializeComponent();
       this.ToggleButtons();
+
+      menuStrip1.Form = this;
+      menuStrip1.InitializeComponents();
+
+      //this.FormClosed += (FormClosedEventHandler)((s, args) => this.Close());
     }
 
     private void btnPlaced_Click(object sender, EventArgs e) => ChangeForm.Placed((Form) this);
@@ -53,33 +59,34 @@ namespace JT_Database_App
 
     private void InitializeComponent()
     {
-      this.menuStrip1 = new cmpJTMenuStrip(this);
+      this.menuStrip1 = new JT_Database_App.cmpJTMenuStrip();
       this.btnPlaced = new System.Windows.Forms.Button();
       this.btnChecker = new System.Windows.Forms.Button();
       this.btnFiled = new System.Windows.Forms.Button();
       this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
-      this.menuStrip1.SuspendLayout();
+      this.tableLayoutPanel2 = new System.Windows.Forms.TableLayoutPanel();
       this.tableLayoutPanel1.SuspendLayout();
+      this.tableLayoutPanel2.SuspendLayout();
       this.SuspendLayout();
       // 
       // menuStrip1
       // 
-      this.menuStrip1.GripMargin = new System.Windows.Forms.Padding(2, 2, 0, 2);
+      this.menuStrip1.Form = this;
       this.menuStrip1.ImageScalingSize = new System.Drawing.Size(32, 32);
       this.menuStrip1.Location = new System.Drawing.Point(0, 0);
       this.menuStrip1.Name = "menuStrip1";
-      this.menuStrip1.Size = new System.Drawing.Size(1774, 40);
+      this.menuStrip1.Padding = new System.Windows.Forms.Padding(3, 1, 0, 1);
+      this.menuStrip1.Size = new System.Drawing.Size(887, 24);
       this.menuStrip1.TabIndex = 0;
       this.menuStrip1.Text = "menuStrip1";
-      this.menuStrip1.InitializeComponents();
       // 
       // btnPlaced
       // 
-      this.btnPlaced.Dock = System.Windows.Forms.DockStyle.Top;
-      this.btnPlaced.Location = new System.Drawing.Point(0, 304);
+      this.btnPlaced.Dock = System.Windows.Forms.DockStyle.Fill;
+      this.btnPlaced.Location = new System.Drawing.Point(0, 0);
       this.btnPlaced.Margin = new System.Windows.Forms.Padding(0);
       this.btnPlaced.Name = "btnPlaced";
-      this.btnPlaced.Size = new System.Drawing.Size(1774, 150);
+      this.btnPlaced.Size = new System.Drawing.Size(883, 235);
       this.btnPlaced.TabIndex = 3;
       this.btnPlaced.Text = "Placed";
       this.btnPlaced.UseVisualStyleBackColor = true;
@@ -87,11 +94,11 @@ namespace JT_Database_App
       // 
       // btnChecker
       // 
-      this.btnChecker.Dock = System.Windows.Forms.DockStyle.Top;
-      this.btnChecker.Location = new System.Drawing.Point(0, 912);
+      this.btnChecker.Dock = System.Windows.Forms.DockStyle.Fill;
+      this.btnChecker.Location = new System.Drawing.Point(0, 235);
       this.btnChecker.Margin = new System.Windows.Forms.Padding(0);
       this.btnChecker.Name = "btnChecker";
-      this.btnChecker.Size = new System.Drawing.Size(1774, 150);
+      this.btnChecker.Size = new System.Drawing.Size(883, 235);
       this.btnChecker.TabIndex = 8;
       this.btnChecker.Text = "Checker";
       this.btnChecker.UseVisualStyleBackColor = true;
@@ -99,11 +106,11 @@ namespace JT_Database_App
       // 
       // btnFiled
       // 
-      this.btnFiled.Dock = System.Windows.Forms.DockStyle.Top;
-      this.btnFiled.Location = new System.Drawing.Point(0, 1216);
+      this.btnFiled.Dock = System.Windows.Forms.DockStyle.Fill;
+      this.btnFiled.Location = new System.Drawing.Point(0, 470);
       this.btnFiled.Margin = new System.Windows.Forms.Padding(0);
       this.btnFiled.Name = "btnFiled";
-      this.btnFiled.Size = new System.Drawing.Size(1774, 135);
+      this.btnFiled.Size = new System.Drawing.Size(883, 237);
       this.btnFiled.TabIndex = 9;
       this.btnFiled.Text = "Filed";
       this.btnFiled.UseVisualStyleBackColor = true;
@@ -117,31 +124,48 @@ namespace JT_Database_App
       this.tableLayoutPanel1.Controls.Add(this.btnChecker, 0, 1);
       this.tableLayoutPanel1.Controls.Add(this.btnPlaced, 0, 0);
       this.tableLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
-      this.tableLayoutPanel1.Location = new System.Drawing.Point(0, 40);
+      this.tableLayoutPanel1.Location = new System.Drawing.Point(2, 28);
+      this.tableLayoutPanel1.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
       this.tableLayoutPanel1.Name = "tableLayoutPanel1";
       this.tableLayoutPanel1.RowCount = 3;
-      this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25F));
-      this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25F));
-      this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25F));
-      this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25F));
-      this.tableLayoutPanel1.Size = new System.Drawing.Size(1774, 1359);
+      this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 33.33333F));
+      this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 33.33333F));
+      this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 33.33333F));
+      this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
+      this.tableLayoutPanel1.Size = new System.Drawing.Size(883, 707);
       this.tableLayoutPanel1.TabIndex = 19;
+      // 
+      // tableLayoutPanel2
+      // 
+      this.tableLayoutPanel2.ColumnCount = 1;
+      this.tableLayoutPanel2.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+      this.tableLayoutPanel2.Controls.Add(this.menuStrip1, 0, 0);
+      this.tableLayoutPanel2.Controls.Add(this.tableLayoutPanel1, 0, 1);
+      this.tableLayoutPanel2.Dock = System.Windows.Forms.DockStyle.Fill;
+      this.tableLayoutPanel2.Location = new System.Drawing.Point(0, 0);
+      this.tableLayoutPanel2.Margin = new System.Windows.Forms.Padding(16);
+      this.tableLayoutPanel2.Name = "tableLayoutPanel2";
+      this.tableLayoutPanel2.RowCount = 2;
+      this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 26F));
+      this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
+      this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
+      this.tableLayoutPanel2.Size = new System.Drawing.Size(887, 727);
+      this.tableLayoutPanel2.TabIndex = 10;
       // 
       // frmMenu
       // 
-      this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 25F);
+      this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
       this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-      this.ClientSize = new System.Drawing.Size(1774, 1399);
-      this.Controls.Add(this.tableLayoutPanel1);
-      this.Controls.Add(this.menuStrip1);
+      this.ClientSize = new System.Drawing.Size(887, 727);
+      this.Controls.Add(this.tableLayoutPanel2);
+      this.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
       this.Name = "frmMenu";
       this.Text = "Menu";
       this.WindowState = System.Windows.Forms.FormWindowState.Maximized;
-      this.menuStrip1.ResumeLayout(false);
-      this.menuStrip1.PerformLayout();
       this.tableLayoutPanel1.ResumeLayout(false);
+      this.tableLayoutPanel2.ResumeLayout(false);
+      this.tableLayoutPanel2.PerformLayout();
       this.ResumeLayout(false);
-      this.PerformLayout();
 
     }
   }

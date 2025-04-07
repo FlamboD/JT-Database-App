@@ -156,6 +156,7 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="ChangeForm.cs" />
+    <Compile Include="DelayIncreaser.cs" />
     <Compile Include="DatabaseController.cs" />
     <Compile Include="Forms\FloatingForm.cs">
       <SubType>Form</SubType>
