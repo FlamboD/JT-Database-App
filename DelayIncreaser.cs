@@ -10,7 +10,7 @@ namespace JT_Database_App
   class DelayIncreaser
   {
     private int increaseAmount;
-    private int delay;
+    private TimeSpan delay;
     private TimeSpan resetInterval;
     private DateTime lastReset;
 
@@ -21,7 +21,7 @@ namespace JT_Database_App
       )
     {
       this.increaseAmount = increaseSeconds;
-      this.delay = initialSeconds;
+      this.delay = TimeSpan.FromSeconds(initialSeconds);
       this.resetInterval = resetInterval;
       lastReset = DateTime.Now;
     }
@@ -31,14 +31,14 @@ namespace JT_Database_App
       if (DateTime.Now > lastReset + resetInterval)
       {
         lastReset = DateTime.Now;
-        delay = 0;
+        delay = TimeSpan.Zero;
       }
     }
 
     public void Delay()
     {
       Thread.Sleep(delay);
-      delay += increaseAmount;
+      delay.Add(TimeSpan.FromSeconds(increaseAmount));
       checkReset();
     }
   }
