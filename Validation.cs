@@ -106,15 +106,14 @@ namespace JT_Database_App
         "       sc.[Sales Date] + 1 < NOW() OR\n" +
         " (" + 
         Validation.selectCount("WHERE\n" +
-          "   sc.invsales = @inv AND\n" +
+          "   sc.invsales <> @inv AND\n" +
           "   (\n" +
-          "       sc.[Customer Name] Is Not Null AND\n" +
           "       p.InvQ_LU Is Null AND\n" +
           "       sc.Cancelled = NO AND\n" +
           "       sc.rep <> 18 AND\n" +
-          "        sc.[Sales Date] + 1 > NOW()\n" +
+          "       sc.[Sales Date] + 1 < NOW()\n" +
           "   )"
-        ) + " = 0) \n" +
+        ) + ") = 0 \n" +
         "   );";
       using (OleDbConnection connection = new OleDbConnection(Validation.BOConnectionStr))
       {
