@@ -22,6 +22,7 @@ namespace JT_Database_App
     //public Validation() => Validation.BOConnectionStr = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" + Settings.Default.BOPath;
 
     private static string select(string _where = "") => "SELECT * FROM \n(((((sales_counter AS sc \nLEFT JOIN cutter AS c ON sc.invsales = c.invcutter)\nLEFT JOIN drilling AS d ON sc.invsales = d.[inv drill])\nLEFT JOIN edger AS e ON sc.invsales = e.[inv edger])\nLEFT JOIN filed AS f ON sc.invsales = f.inv_filled)\nLEFT JOIN checker AS chk ON sc.invsales = chk.[inv checker])\nLEFT JOIN placed AS p ON sc.invsales = p.invQ_LU\n" + _where;
+    private static string selectCount(string _where = "") => "SELECT COUNT(*) FROM \n(((((sales_counter AS sc \nLEFT JOIN cutter AS c ON sc.invsales = c.invcutter)\nLEFT JOIN drilling AS d ON sc.invsales = d.[inv drill])\nLEFT JOIN edger AS e ON sc.invsales = e.[inv edger])\nLEFT JOIN filed AS f ON sc.invsales = f.inv_filled)\nLEFT JOIN checker AS chk ON sc.invsales = chk.[inv checker])\nLEFT JOIN placed AS p ON sc.invsales = p.invQ_LU\n" + _where;
 
     public Dictionary<string, int> getHours()
     {
@@ -240,8 +241,17 @@ namespace JT_Database_App
       string _where = "WHERE\n" +
         "   sc.invsales = @inv AND\n" +
         "   (\n" +
-        "       p.[peg date] + 1 < NOW() OR\n" +
-        "       (SELECT COUNT(*) FROM placed AS psq WHERE psq.[peg date] + 1 > NOW()) = 0\n" +
+        "       sc.[Sales Date] + 1 < NOW() OR\n" +
+        " (" +
+        Validation.selectCount("WHERE\n" +
+          "   sc.invsales <> @inv AND\n" +
+          "   (\n" +
+          "       p.InvQ_LU Is Null AND\n" +
+          "       sc.Cancelled = NO AND\n" +
+          "       sc.rep <> 18 AND\n" +
+          "       sc.[Sales Date] + 1 < NOW()\n" +
+          "   )"
+        ) + ") = 0 \n" +
         "   );";
       using (OleDbConnection connection = new OleDbConnection(Validation.BOConnectionStr))
       {
